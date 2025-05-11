@@ -4,6 +4,7 @@ import { createLogger } from './logger.js';
 import { getAllServices, type Service } from "./storage/service.repository.js";
 import { runMigrations } from "./storage/db.js";
 import { startUI } from "./ui/server.js";
+import { matchWithoutStars, wildcardDomainMatch } from "./matcher.js";
 
 const logger = createLogger(process.env.LOG_LEVEL || 'info');
 
@@ -36,13 +37,13 @@ existingServices.forEach(service => {
   logger.debug(`Service ID: ${service.id}, Name: ${service.name}, Interfaces: ${service.interfaces.join(', ')}, Domains: ${service.matchingDomains.join(', ')}`);
 });
 
-const matches: { name: string, interfaces: string[], pattern: string }[] = []
+const matchers: { name: string, interfaces: string[], pattern: string }[] = []
 existingServices.forEach(service => {
-  service.matchingDomains.forEach(domain => {
-    matches.push({
+  service.matchingDomains.forEach(pattern => {
+    matchers.push({
       name: service.name,
       interfaces: service.interfaces,
-      pattern: domain,
+      pattern: pattern,
     })
   })
 })
@@ -54,7 +55,7 @@ await startFileWatcher({
         const logEntry = JSON.parse(line) as { hostname: string, ips: string[] };
         if (logEntry && typeof logEntry.hostname === 'string' && Array.isArray(logEntry.ips)) {
             logger.debug(`dns query for ${logEntry.hostname} resolved to IPs: ${logEntry.ips}`);
-            const match = matches.find(match => match.pattern === logEntry.hostname);
+            const match = matchers.find(m => wildcardDomainMatch(logEntry.hostname, m.pattern) || matchWithoutStars(logEntry.hostname, m.pattern));
             if (match) {
               api.addStaticRoutesForService({
                 ips: logEntry.ips,
