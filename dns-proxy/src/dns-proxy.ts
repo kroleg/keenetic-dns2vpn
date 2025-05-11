@@ -18,8 +18,9 @@ export class DnsProxy {
     this.logResolvedToFile = config.logResolvedToFile;
   }
 
-  private async logResolvedHost(hostname: string, ips: string[]) {
-    const logEntry = JSON.stringify({ ts: new Date().toISOString(), hostname, ips}) + '\n';
+  private async logResolvedHost(params: { clientIp: string, hostname: string, ips: string[] }) {
+    const { clientIp, hostname, ips } = params;
+    const logEntry = JSON.stringify({ ts: new Date().toISOString(), clientIp, hostname, ips }) + '\n';
     try {
       await fs.appendFile(this.logResolvedToFile, logEntry);
       this.logger.debug('Logged to file:', { hostname, ips });
@@ -35,7 +36,7 @@ export class DnsProxy {
 
     this.server.on('message', async (msg: Buffer, rinfo: RemoteInfo) => {
       try {
-        const response = await this.handleDnsRequest(msg);
+        const response = await this.handleDnsRequest(msg, rinfo.address);
         this.server.send(response, rinfo.port, rinfo.address);
       } catch (error) {
         this.logger.error('Error handling DNS request:', error);
@@ -43,7 +44,7 @@ export class DnsProxy {
     });
   }
 
-  private async handleDnsRequest(msg: Buffer): Promise<Buffer> {
+  private async handleDnsRequest(msg: Buffer, clientIp: string): Promise<Buffer> {
     const query = dnsPacket.decode(msg);
     const question = query.questions[0];
 
@@ -81,21 +82,8 @@ export class DnsProxy {
 
       const decodedResponse = dnsPacket.decode(response);
 
-      const resolvedIps = decodedResponse.answers
-        .filter((a: DnsAnswer) => a.type === 'A' || a.type === 'AAAA')
-        .map((a: DnsAnswer) => a.data.toString());
-
-      resolvedIps.forEach((ip: string) => {
-        this.logger.info(`${question.name} ${ip}`);
-      });
-
-      // Submit to service if enabled
-      if (resolvedIps.length > 0) {
-        await this.logResolvedHost(question.name, resolvedIps);
-      }
-
       // Log raw response for debugging
-      this.logger.debug('Raw DNS response:', {
+      this.logger.debug('DNS response:', {
         type: decodedResponse.type,
         flags: decodedResponse.flags,
         answers: decodedResponse.answers.map(a => ({
@@ -105,6 +93,17 @@ export class DnsProxy {
           data: a.data
         }))
       });
+
+      const resolvedIps = decodedResponse.answers
+        .filter((a: DnsAnswer) => a.type === 'A' || a.type === 'AAAA')
+        .map((a: DnsAnswer) => a.data.toString());
+
+      this.logger.info(`client: ${clientIp} query: ${question.name} response: ${resolvedIps}`);
+
+      // Submit to service if enabled
+      if (resolvedIps.length > 0) {
+        await this.logResolvedHost({ clientIp, hostname: question.name, ips: resolvedIps });
+      }
 
       return response;
 
