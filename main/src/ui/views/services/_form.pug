@@ -1,0 +1,20 @@
+if error
+  .error= error
+
+.form-group
+  label(for='name') Service Name:
+  input#name(type='text' name='name' value=service.name required)
+
+.form-group
+  label(for='interfaces') Interfaces (comma-separated)
+  textarea#interfaces(name='interfaces' rows='3')= Array.isArray(service.interfaces) ? service.interfaces.join(', ') : service.interfaces
+  small Example: eth0, br-lan
+
+.form-group
+  label(for='matchingDomains') Matching Domains (comma-separated). *.domain.com will match domain.com and all subdomains.
+  textarea#matchingDomains(name='matchingDomains' rows='3')= Array.isArray(service.matchingDomains) ? service.matchingDomains.join(', ') : service.matchingDomains
+  small Example: "google.com, *.example.com"
+
+.form-actions
+  button(type='submit')= service.id ? 'Update Service' : 'Create Service'
+  a(href='/services') Cancel

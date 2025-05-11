@@ -1,0 +1,6 @@
+extends ../layout.pug
+
+block content
+  h2 Update Service: #{service.name}
+  form(method='POST' action=`/services/update/${service.id}`)
+    include _form.pug

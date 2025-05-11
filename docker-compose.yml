@@ -1,0 +1,28 @@
+services:
+  dns-to-vpn:
+    build:
+      context: ./main
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" # Assuming js-api runs on port 3000
+    volumes:
+      - ./shared-logs:/logs
+      - ./db:/db
+    environment:
+      - WATCH_FILE=/logs/dns-proxy.log
+      - DB_PATH=/db/sqlite.db
+      - KEENETIC_HOST=${KEENETIC_HOST}
+      - KEENETIC_LOGIN=${KEENETIC_LOGIN}
+      - KEENETIC_PASSWORD=${KEENETIC_PASSWORD}
+
+  dns-proxy:
+    build:
+      context: ./dns-proxy
+    environment:
+      - LOG_RESOLVED_TO_FILE=/logs/dns-proxy.log
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - ./shared-logs:/logs
+    restart: unless-stopped

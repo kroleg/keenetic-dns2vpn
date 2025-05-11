@@ -1,0 +1,37 @@
+{
+  "name": "js-api",
+  "version": "1.0.0",
+  "description": "Keenetic VPN API wrapper",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx --env-file=.env --watch src/main.ts",
+    "test": "vitest",
+    "test:watch": "vitest watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "keenetic",
+    "vpn",
+    "api"
+  ],
+  "author": "Vitaliy Zaytsev",
+  "license": "ISC",
+  "dependencies": {
+    "@logdna/tail-file": "^4.0.2",
+    "better-sqlite3": "^11.10.0",
+    "drizzle-orm": "^0.43.1",
+    "express": "^5.1.0",
+    "pug": "^3.0.3",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.15.17",
+    "drizzle-kit": "^0.31.1"
+  }
+}
