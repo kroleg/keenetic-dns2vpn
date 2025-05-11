@@ -1,4 +1,5 @@
 export const defaultConfig = {
+  logLevel: process.env.LOG_LEVEL || 'info',
   listenPort: 53,
   upstreamServers: [
     { host: '192.168.1.1', port: 53 },

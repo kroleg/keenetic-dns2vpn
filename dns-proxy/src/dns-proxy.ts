@@ -4,13 +4,15 @@ import dnsPacket, { type DnsAnswer } from 'dns-packet';
 import { createLogger } from './logger.js';
 import { defaultConfig } from './config.js';
 import fs from 'node:fs/promises';
+import type { Logger } from 'winston';
 
 export class DnsProxy {
   private server: dgram.Socket;
-  private logger = createLogger('info');
+  private logger: Logger;
   private logResolvedToFile: string;
 
   constructor(private config: typeof defaultConfig) {
+    this.logger = createLogger(config.logLevel);
     this.server = dgram.createSocket('udp4');
     this.setupServer();
     this.logResolvedToFile = config.logResolvedToFile;
