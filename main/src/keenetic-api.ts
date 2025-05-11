@@ -36,6 +36,7 @@ export class KeeneticApi {
         }
     }
 
+    // todo remove if not used. Kept for reference.
     async addStaticRoute(
         routeParams: {
             network?: string;
@@ -83,6 +84,40 @@ export class KeeneticApi {
         this.logger.debug(status);
         this.logger.error(status[0].message);
         return false;
+    }
+
+    async addStaticRoutesForService(
+      service: {
+        ips: string[];
+        interfaces: string[];
+        comment: string;
+      }
+    ) {
+      const payloadPrefix = {
+        webhelp: { event: { push: { data: JSON.stringify({ type: "configuration_change", value: { url: "/staticRoutes" } }) } } }
+      }
+      const payloadSuffix = { system: { configuration: { save: {} } } }
+      const { interfaces, ips: hosts, comment } = service
+      const commands = hosts.flatMap(host => {
+        return (interfaces || ['Wireguard0']).map(iface => {
+          return {
+              ip: { route: { host, interface: iface, auto: true, comment, }, },
+          };
+        })
+      })
+
+      const result = await this.postWithAuth('/rci/', [
+        payloadPrefix,
+        ...commands,
+        payloadSuffix,
+      ]);
+      this.logger.debug('full response: ' + JSON.stringify(result.data));
+      return (result.data as any[]).slice(1,-1).map(command => {
+        const { status } = command.ip.route;
+        const messages = status.map((s:any) => s.message).join('; ');
+        this.logger.debug(messages)
+        return messages;
+      });
     }
 
     async postWithAuth(path: string, body: unknown): Promise<{

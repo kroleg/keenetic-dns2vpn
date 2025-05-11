@@ -8,9 +8,9 @@
   - needs dns-proxy to pass ip of client
 
 ### TODO
-- [ ] single repo to host dns-proxy and watcher
-- [ ] should work for multiple IPs resolved (currently only first one passed)
-- [ ] pass interface to keenetic (currently hardcoded)
+- [x] single repo to host dns-proxy and watcher
+- [x] should work for multiple IPs resolved (currently only first one passed)
+- [x] pass interface to keenetic (currently hardcoded)
 - [ ] support specifying interfaces by name
 - [ ] support getting available interfaces from keenetic api
 - [ ] show currently applied rules for each service

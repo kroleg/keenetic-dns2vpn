@@ -51,15 +51,15 @@ await startFileWatcher({
   logFilePath: process.env.WATCH_FILE || 'dns-proxy.log',
   onLine: (line) => {
     try {
-        const logEntry = JSON.parse(line);
+        const logEntry = JSON.parse(line) as { hostname: string, ips: string[] };
         if (logEntry && typeof logEntry.hostname === 'string' && Array.isArray(logEntry.ips)) {
-            logger.debug(`dns query for ${logEntry.hostname} resolved to IPs: ${logEntry.ips.join(', ')}`);
+            logger.debug(`dns query for ${logEntry.hostname} resolved to IPs: ${logEntry.ips}`);
             const match = matches.find(match => match.pattern === logEntry.hostname);
             if (match) {
-              api.addStaticRoute({
-                host: logEntry.ips[0],
-                interfaceId: 'Wireguard0',
-                comment: '[auto-dns:' + match.name + '] ' + logEntry.hostname,
+              api.addStaticRoutesForService({
+                ips: logEntry.ips,
+                interfaces: match.interfaces,
+                comment: 'dns-auto:' + match.name + ':' + logEntry.hostname,
               }).then(resp => {
                 if (resp) {
                   // todo differentiate between add and update
