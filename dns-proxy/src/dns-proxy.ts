@@ -16,6 +16,8 @@ export class DnsProxy {
     this.server = dgram.createSocket('udp4');
     this.setupServer();
     this.logResolvedToFile = config.logResolvedToFile;
+    // Create the log file if it doesn't exist, so on first run there will be no need to manually create it
+    fs.writeFile(this.logResolvedToFile, '');
   }
 
   private async logResolvedHost(params: { clientIp: string, hostname: string, ips: string[] }) {
