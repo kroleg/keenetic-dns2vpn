@@ -31,8 +31,7 @@ logger.info('Database migrations checked/applied.');
 
 // Fetch existing services
 const existingServices: Service[] = await getAllServices();
-logger.info(`Fetched ${existingServices.length} services from the database.`);
-console.log(existingServices);
+logger.debug(`Fetched ${existingServices.length} services from the database.`);
 existingServices.forEach(service => {
   logger.debug(`Service ID: ${service.id}, Name: ${service.name}, Interfaces: ${service.interfaces.join(', ')}, Domains: ${service.matchingDomains.join(', ')}`);
 });
@@ -84,7 +83,7 @@ await startFileWatcher({
   logger,
 });
 
-const { gracefulShutdown: gracefulShutdownUI } = startUI(logger);
+const { gracefulShutdown: gracefulShutdownUI } = startUI(logger, api);
 
 process.on('SIGINT', gracefulShutdownUI); // Ctrl+C
 process.on('SIGTERM', gracefulShutdownUI); // kill

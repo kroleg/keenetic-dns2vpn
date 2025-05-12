@@ -7,6 +7,12 @@ if error
 
 .form-group
   label(for='interfaces') Interfaces (comma-separated)
+  ul
+    each iface in interfaces
+      li
+        = iface.id
+        = ' = '
+        = iface.name
   textarea#interfaces(name='interfaces' rows='3')= Array.isArray(service.interfaces) ? service.interfaces.join(', ') : service.interfaces
   small Example: eth0, br-lan
 

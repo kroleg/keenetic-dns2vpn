@@ -281,6 +281,16 @@ export class KeeneticApi {
         }
     }
 
+  async getInterfaces(types: string[] = ['Wireguard']): Promise<
+    {
+      id: string,
+      name: string,
+      type: string,
+    }[]
+  > {
+    const { data } = await this.getWithAuth('/rci/show/interface');
+    return Object.values(data).filter((i: any) => types.includes(i.type)).map(({ id, type, description: name }: any) => ({ id, name, type }));
+  }
 }
 
 

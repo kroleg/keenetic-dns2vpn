@@ -1,10 +1,11 @@
 import express, { type Request, type Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { servicesRouter } from './services.routes.js';
+import { createServicesRouter } from './services.routes.js';
 import type { Logger } from 'winston';
+import type { KeeneticApi } from '../keenetic-api.js';
 
-export function startUI(logger: Logger) {
+export function startUI(logger: Logger, api: KeeneticApi) {
 
   // Get __dirname in ES module scope
   const __filename = fileURLToPath(import.meta.url);
@@ -22,7 +23,7 @@ export function startUI(logger: Logger) {
   // app.use(express.static(path.join(__dirname, 'public'))); // Example if you create a 'public' folder
 
   // Mount the services UI router
-  app.use('/services', servicesRouter);
+  app.use('/services', createServicesRouter(api));
 
   app.get('/', (req: Request, res: Response) => {
     res.redirect('/services');
