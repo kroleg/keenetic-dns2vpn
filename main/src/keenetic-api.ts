@@ -289,7 +289,7 @@ export class KeeneticApi {
     }[]
   > {
     const { data } = await this.getWithAuth('/rci/show/interface');
-    return Object.values(data).filter((i: any) => types.includes(i.type)).map(({ id, type, description: name }: any) => ({ id, name, type }));
+    return Object.values(data as any).filter((i: any) => types.includes(i.type)).map(({ id, type, description: name }: any) => ({ id, name, type }));
   }
 }
 
