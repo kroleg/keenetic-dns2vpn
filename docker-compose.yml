@@ -1,5 +1,7 @@
 services:
   dns-to-vpn:
+    depends_on:
+      - dns-proxy
     build:
       context: ./main
       dockerfile: Dockerfile
