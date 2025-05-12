@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/ui/views dist/ui/views",
     "start": "tsx --env-file=.env --watch src/main.ts",
     "test": "vitest",
     "test:watch": "vitest watch",
