@@ -291,6 +291,62 @@ export class KeeneticApi {
     const { data } = await this.getWithAuth('/rci/show/interface');
     return Object.values(data as any).filter((i: any) => types.includes(i.type)).map(({ id, type, description: name }: any) => ({ id, name, type }));
   }
+
+  async getRoutes(): Promise<{
+    network?: string;
+    mask?: string;
+    host?: string;
+    interface: string;
+    comment: string;
+    gateway?: string;
+    metric?: number;
+    auto?: boolean;
+  }[]> {
+    await this.ensureAuthenticated();
+    try {
+      const response = await this.postWithAuth('/rci/', [{
+        show: {
+          sc: {
+            ip: {
+              route: {}
+            }
+          }
+        }
+      }]);
+
+      if (response.status === 200 && Array.isArray(response.data)) {
+        const routesData = response.data[0]?.show?.sc?.ip?.route as Record<string, {
+          network?: string;
+          mask?: string;
+          host?: string;
+          interface: string;
+          comment: string;
+          gateway?: string;
+          metric?: number;
+          auto?: boolean;
+        }>;
+        if (routesData) {
+          return Object.values(routesData).map(route => ({
+            network: route.network,
+            mask: route.mask,
+            host: route.host,
+            interface: route.interface,
+            comment: route.comment,
+            gateway: route.gateway,
+            metric: route.metric,
+            auto: route.auto
+          }));
+        }
+      }
+      this.logger.error(`Failed to get routes. Status: ${response.status}, Data: ${JSON.stringify(response.data)}`);
+      return [];
+    } catch (error) {
+      this.logger.error('Error fetching routes:', error);
+      return [];
+    }
+  }
+
+
 }
 
 

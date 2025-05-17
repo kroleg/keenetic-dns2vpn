@@ -7,6 +7,19 @@ const stringToArray = (input?: string): string[] => {
   return input.split(',').map(item => item.trim()).filter(Boolean);
 }
 
+type ServiceWithRoutes = serviceRepository.Service & {
+  routes: {
+    network?: string;
+    mask?: string;
+    host?: string;
+    interface: string;
+    comment: string;
+    gateway?: string;
+    metric?: number;
+    auto?: boolean;
+  }[];
+};
+
 export function createServicesRouter(api: KeeneticApi): express.Router {
   const servicesRouter = express.Router();
 
@@ -17,10 +30,15 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
   servicesRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const services = await serviceRepository.getAllServices();
     const interfaces = await api.getInterfaces();
-    services.forEach(service => {
-      service.interfaces = service.interfaces.map(ifaceIdOrName => interfaces.find(i => i.name === ifaceIdOrName || i.id === ifaceIdOrName)?.name || ifaceIdOrName);
-    });
-    res.render('services/list', { services, interfaces, title: 'Services', currentPath: req.path });
+    const routes = await api.getRoutes();
+
+    const servicesWithRoutes: ServiceWithRoutes[] = services.map(service => ({
+      ...service,
+      interfaces: service.interfaces.map(ifaceIdOrName => interfaces.find(i => i.name === ifaceIdOrName || i.id === ifaceIdOrName)?.name || ifaceIdOrName),
+      routes: routes.filter(route => route.comment && route.comment.includes(service.name))
+    }));
+
+    res.render('services/list', { services: servicesWithRoutes, interfaces, title: 'Services', currentPath: req.path });
   });
 
   // Route to display form for creating a new service
