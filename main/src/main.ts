@@ -29,23 +29,30 @@ const api = new KeeneticApi({
 await runMigrations();
 logger.info('Database migrations checked/applied.');
 
-// Fetch existing services
-const existingServices: Service[] = await getAllServices();
-logger.debug(`Fetched ${existingServices.length} services from the database.`);
-existingServices.forEach(service => {
-  logger.debug(`Service ID: ${service.id}, Name: ${service.name}, Interfaces: ${service.interfaces.join(', ')}, Domains: ${service.matchingDomains.join(', ')}`);
-});
+let matchers: { name: string, interfaces: string[], pattern: string }[]
 
-const matchers: { name: string, interfaces: string[], pattern: string }[] = []
-existingServices.forEach(service => {
-  service.matchingDomains.forEach(pattern => {
-    matchers.push({
-      name: service.name,
-      interfaces: service.interfaces,
-      pattern: pattern,
+async function fetchMatchers() {
+  const existingServices: Service[] = await getAllServices();
+  logger.debug(`Fetched ${existingServices.length} services from the database.`);
+  existingServices.forEach(service => {
+    logger.debug(`Service ID: ${service.id}, Name: ${service.name}, Interfaces: ${service.interfaces.join(', ')}, Domains: ${service.matchingDomains.join(', ')}`);
+  });
+  const list: typeof matchers = []
+  existingServices.forEach(service => {
+    service.matchingDomains.forEach(pattern => {
+      list.push({
+        name: service.name,
+        interfaces: service.interfaces,
+        pattern: pattern,
+      })
     })
   })
-})
+  matchers = list
+}
+
+// Start the interval loop
+setInterval(fetchMatchers, 60 * 1000); // every 60 seconds
+fetchMatchers()
 
 await startFileWatcher({
   logFilePath: process.env.WATCH_FILE || 'dns-proxy.log',
