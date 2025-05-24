@@ -10,6 +10,8 @@ if error
   ul
     each iface in interfaces
       li
+        if !iface.connected
+          = '(❌ NOT CONNECTED) '
         = iface.id
         = ' = '
         = iface.name

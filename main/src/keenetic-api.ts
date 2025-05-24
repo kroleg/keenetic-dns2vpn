@@ -286,10 +286,12 @@ export class KeeneticApi {
       id: string,
       name: string,
       type: string,
+      connected: boolean
     }[]
   > {
     const { data } = await this.getWithAuth('/rci/show/interface');
-    return Object.values(data as any).filter((i: any) => types.includes(i.type)).map(({ id, type, description: name }: any) => ({ id, name, type }));
+    const facesWithTypes = Object.values(data as any).filter((i: any) => types.includes(i.type))
+    return facesWithTypes.map(({ id, type, description: name, connected: connectedYesNo }: any) => ({ id, name, type, connected: connectedYesNo == 'yes'  }));
   }
 
   async getRoutes(): Promise<{

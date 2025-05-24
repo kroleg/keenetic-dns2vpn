@@ -1,6 +1,13 @@
 extends ../layout.pug
 
 block content
+  if notConnectedInterfaces.length === 0
+    p ℹ️ all interfaces connected
+  else
+    p= '❌ interfaces not connected: '
+      each iface in notConnectedInterfaces
+        strong= iface.name
+
   if services.length === 0
     p No services found.
     a.create(href='/services/create') Create New Service

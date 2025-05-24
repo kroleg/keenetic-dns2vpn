@@ -30,6 +30,7 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
   servicesRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const services = await serviceRepository.getAllServices();
     const interfaces = await api.getInterfaces();
+    const notConnectedInterfaces = interfaces.filter(i => !i.connected)
     const routes = await api.getRoutes();
 
     const servicesWithRoutes: ServiceWithRoutes[] = services.map(service => ({
@@ -38,7 +39,7 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
       routes: routes.filter(route => route.comment && route.comment.includes(service.name))
     }));
 
-    res.render('services/list', { services: servicesWithRoutes, interfaces, title: 'Services', currentPath: req.path });
+    res.render('services/list', { services: servicesWithRoutes, interfaces, notConnectedInterfaces, title: 'Services', currentPath: req.path });
   });
 
   // Route to display form for creating a new service
