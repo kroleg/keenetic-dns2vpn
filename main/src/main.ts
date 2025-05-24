@@ -51,7 +51,7 @@ async function fetchMatchers() {
 }
 
 // Start the interval loop
-setInterval(fetchMatchers, 60 * 1000); // every 60 seconds
+const refetchMatchersInterval = setInterval(fetchMatchers, 60 * 1000); // every 60 seconds
 fetchMatchers()
 
 await startFileWatcher({
@@ -91,12 +91,16 @@ await startFileWatcher({
 });
 
 const { gracefulShutdown: gracefulShutdownUI } = startUI(logger, api);
+function gracefulShutdown () {
+  clearInterval(refetchMatchersInterval)
+  gracefulShutdownUI()
+}
 
-process.on('SIGINT', gracefulShutdownUI); // Ctrl+C
-process.on('SIGTERM', gracefulShutdownUI); // kill
-process.on('SIGUSR2', gracefulShutdownUI); // nodemon restart etc.
+process.on('SIGINT', gracefulShutdown); // Ctrl+C
+process.on('SIGTERM', gracefulShutdown); // kill
+process.on('SIGUSR2', gracefulShutdown); // nodemon restart etc.
 
 process.on('uncaughtException', (err: Error) => {
   logger.error('Uncaught Exception:', err);
-  gracefulShutdownUI();
+  gracefulShutdown();
 });
