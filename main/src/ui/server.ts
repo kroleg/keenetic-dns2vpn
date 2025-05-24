@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServicesRouter } from './services.routes.js';
+import { createLogsRouter } from './logs.routes.js';
 import type { Logger } from 'winston';
 import type { KeeneticApi } from '../keenetic-api.js';
 
@@ -24,6 +25,7 @@ export function startUI(logger: Logger, api: KeeneticApi) {
 
   // Mount the services UI router
   app.use('/services', createServicesRouter(api));
+  app.use('/logs', createLogsRouter({ logFilePath: process.env.WATCH_FILE! }));
 
   app.get('/', (req: Request, res: Response) => {
     res.redirect('/services');
