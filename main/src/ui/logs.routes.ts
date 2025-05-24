@@ -5,11 +5,10 @@ import readline from 'node:readline';
 export function createLogsRouter({ logFilePath }: { logFilePath: string }): express.Router {
   const router = express.Router();
 
-  // Route to display list of services
-  router.get('/my', async (req: Request, res: Response, next: NextFunction) => {
-    const clientIp = req.ip?.replace('::ffff:', '')
+  router.get('/:ip', async (req: Request, res: Response, next: NextFunction) => {
+    const clientIp = req.params.ip !== 'my' ? req.params.ip : req.ip?.replace('::ffff:', '')
     if (!clientIp) {
-      res.send('Cant read your ip')
+      res.send('Cant read ip')
       return
     }
 
