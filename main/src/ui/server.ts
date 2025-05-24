@@ -42,7 +42,7 @@ export function startUI(logger: Logger, api: KeeneticApi) {
   // Graceful shutdown
   return {
     gracefulShutdown: () => {
-      logger.debug('[UI] Attempting to gracefully shutdown tailing...');
+      logger.debug('[UI] Attempting to gracefully shutdown...');
       try {
         server.close();
         logger.debug('[UI] Server stopped.');
