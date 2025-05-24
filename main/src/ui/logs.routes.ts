@@ -14,7 +14,11 @@ export function createLogsRouter({ logFilePath }: { logFilePath: string }): expr
 
     const logs = await getHostnamesAndIpsForClient(logFilePath, clientIp)
 
-    res.type('text').send(logs.map(line => `${formatShortDate(line.ts)} | ${line.hostname}`).join('\n'))
+    res.type('text').send(logs.map(line => {
+      const date = formatShortDate(line.ts)
+      const blockedInfo = line.ips[0] === '0.0.0.0' ? 'b' : ' '
+      return `${date} | ${blockedInfo} | ${line.hostname}`
+    }).join('\n'))
   });
 
   return router;
