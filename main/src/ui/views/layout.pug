@@ -1,35 +1,15 @@
 doctype html
-html
+html(data-theme="light")
   head
     title= title
-    // Add some basic styling - you can replace with a proper CSS framework later
-    style.
-      body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-      .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-      h1, h2 { color: #333; }
-      nav { margin-bottom: 20px; }
-      nav a { margin-right: 15px; text-decoration: none; color: #007bff; }
-      nav a:hover { text-decoration: underline; }
-      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-      th { background-color: #007bff; color: white; }
-      tr:nth-child(even) { background-color: #f2f2f2; }
-      .actions a, .actions button { margin-right: 5px; padding: 5px 10px; text-decoration: none; border-radius: 4px; border: 1px solid transparent; cursor: pointer; }
-      .actions a.edit { background-color: #ffc107; color: #333; border-color: #ffc107;}
-      .actions button.delete { background-color: #dc3545; color: white; border-color: #dc3545;}
-      .actions a.create { background-color: #28a745; color: white; padding: 8px 15px; border-color: #28a745; }
-      .form-group { margin-bottom: 15px; }
-      .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-      .form-group input[type='text'], .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-      .form-group textarea { resize: vertical; min-height: 80px; }
-      .form-actions button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
-      .form-actions button[type='submit'] { background-color: #007bff; color: white; }
-      .form-actions a { color: #333; text-decoration: none; margin-left: 10px; }
-      .error { color: red; margin-bottom: 15px; border: 1px solid red; padding: 10px; border-radius: 4px; background-color: #ffebeb; }
+    link(rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css")
   body
-    .container
+    main.container
       nav
-        a(href='/services') Services
-        a(href='/logs') Logs
+        ul
+          li
+            a(href='/services') Services
+          li
+            a(href='/logs') Logs
       h1= title
       block content

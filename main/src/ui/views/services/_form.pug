@@ -1,28 +1,27 @@
 if error
-  .error= error
+  article.alert.alert-error= error
 
-.form-group
-  label(for='name') Service Name:
-  input#name(type='text' name='name' value=service.name required)
+form
+  fieldset
+    label(for='name') Service Name:
+    input#name(type='text' name='name' value=service.name required)
 
-.form-group
-  label(for='interfaces') Interfaces (comma-separated)
-  ul
-    each iface in interfaces
-      li
-        if !iface.connected
-          = '(❌ NOT CONNECTED) '
-        = iface.id
-        = ' = '
-        = iface.name
-  textarea#interfaces(name='interfaces' rows='3')= Array.isArray(service.interfaces) ? service.interfaces.join(', ') : service.interfaces
-  small Example: eth0, br-lan
+    label(for='interfaces') Interfaces (comma-separated)
+    ul
+      each iface in interfaces
+        li
+          if !iface.connected
+            = '(❌ NOT CONNECTED) '
+          = iface.id
+          = ' = '
+          = iface.name
+    textarea#interfaces(name='interfaces' rows='3')= Array.isArray(service.interfaces) ? service.interfaces.join(', ') : service.interfaces
+    small Example: eth0, br-lan
 
-.form-group
-  label(for='matchingDomains') Matching Domains (comma-separated). *.domain.com will match domain.com and all subdomains.
-  textarea#matchingDomains(name='matchingDomains' rows='3')= Array.isArray(service.matchingDomains) ? service.matchingDomains.join(', ') : service.matchingDomains
-  small Example: "google.com, *.example.com"
+    label(for='matchingDomains') Matching Domains (comma-separated). *.domain.com will match domain.com and all subdomains.
+    textarea#matchingDomains(name='matchingDomains' rows='3')= Array.isArray(service.matchingDomains) ? service.matchingDomains.join(', ') : service.matchingDomains
+    small Example: "google.com, *.example.com"
 
-.form-actions
-  button(type='submit')= service.id ? 'Update Service' : 'Create Service'
-  a(href='/services') Cancel
+    .grid
+      button(type='submit')= service.id ? 'Update Service' : 'Create Service'
+      a.button.secondary(href='/services' role='button') Cancel

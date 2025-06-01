@@ -4,67 +4,51 @@ block content
   if notConnectedInterfaces.length === 0
     p ℹ️ all interfaces connected
   else
-    p= '❌ interfaces not connected: '
+    p ❌ interfaces not connected:
       each iface in notConnectedInterfaces
         strong= iface.name
 
-  if services.length === 0
-    p No services found.
-    a.create(href='/services/create') Create New Service
-  else
-    table
-      thead
-        tr
-          th Name
-          th Interfaces
-          th Domains
-          th Actions
-      tbody
-        each service in services
+  article
+    a.button(href='/services/create' role='button') Create New Service
+
+    if services.length === 0
+      p No services found.
+    else
+      table
+        thead
           tr
-            td= service.name
-            td= service.interfaces.join(', ')
-            td
-              if service.routes.length > 0
-                - const routesByDomain = {}
-                - const routesByInterface = {}
-                each route in service.routes
-                  if route.comment && route.comment.startsWith('dns-auto:')
-                    - const domain = route.comment.split(':')[2]
-                    - if (!routesByDomain[domain]) routesByDomain[domain] = []
-                    - routesByDomain[domain].push(route)
-                  else
-                    - if (!routesByInterface[route.interface]) routesByInterface[route.interface] = []
-                    - routesByInterface[route.interface].push(route)
+            th Name
+            th Interfaces
+            th Domains
+            th Actions
+        tbody
+          each service in services
+            tr
+              td= service.name
+              td= service.interfaces.join(', ')
+              td
+                if service.routes.length > 0
+                  - const routesByDomain = {}
+                  - const routesByInterface = {}
+                  each route in service.routes
+                    if route.comment && route.comment.startsWith('dns-auto:')
+                      - const domain = route.comment.split(':')[2]
+                      - if (!routesByDomain[domain]) routesByDomain[domain] = []
+                      - routesByDomain[domain].push(route)
+                    else
+                      - if (!routesByInterface[route.interface]) routesByInterface[route.interface] = []
+                      - routesByInterface[route.interface].push(route)
 
-                if Object.keys(routesByDomain).length > 0
-                  h3= service.matchingDomains.join(', ')
-                  each domain, domainName in routesByDomain
-                    .domain-group
-                      strong= domainName
-                      div.routes= domain.map(route => route.host).join(', ')
-
-                if Object.keys(routesByInterface).length > 0
-                  h4 Interface-based Routes
-                  each routes, interfaceName in routesByInterface
-                    .interface-group
-                      h5= interfaceName
-                      ul.routes
-                        each route in routes
-                          li
-                            if route.host
-                              | Host: #{route.host}
-                            else if route.network
-                              | Network: #{route.network}/#{route.mask}
-                            if route.gateway
-                              |  via #{route.gateway}
-                            if route.metric
-                              |  (metric: #{route.metric})
-              else
-                | No routes
-            td.actions
-              a.edit(href=`/services/update/${service.id}`) Edit
-              form(method='POST' action=`/services/delete/${service.id}` style='display: inline;' onsubmit='return confirm("Are you sure you want to delete this service?");')
-                button.delete(type='submit') Delete
-    hr
-    a.create(href='/services/create') Create New Service
+                  if Object.keys(routesByDomain).length > 0
+                    strong= service.matchingDomains.join(', ')
+                    br
+                    each domain, domainName in routesByDomain
+                      .domain-group
+                        strong= domainName
+                        div.routes= domain.map(route => route.host).join(', ')
+                else
+                  | No routes
+              td
+                a.button.secondary(href=`/services/update/${service.id}`) Edit
+                form(method='POST' action=`/services/delete/${service.id}` style='display: inline;' onsubmit='return confirm("Are you sure you want to delete this service?");')
+                  button.button.contrast(type='submit') Delete
