@@ -348,6 +348,28 @@ export class KeeneticApi {
     }
   }
 
+  async getClients(): Promise<{
+    name: string;
+    ip: string;
+  }[]> {
+    await this.ensureAuthenticated();
+    try {
+      const response = await this.getWithAuth('/rci/show/ip/hotspot/host');
+      if (response.status === 200 && Array.isArray(response.data)) {
+        return response.data
+          .filter((client: any) => client.ip !== '0.0.0.0')
+          .map((client: any) => ({
+            name: client.name || 'Unknown',
+            ip: client.ip || '',
+          }));
+      }
+      this.logger.error(`Failed to get clients. Status: ${response.status}, Data: ${JSON.stringify(response.data)}`);
+      return [];
+    } catch (error) {
+      this.logger.error('Error fetching clients:', error);
+      return [];
+    }
+  }
 
 }
 

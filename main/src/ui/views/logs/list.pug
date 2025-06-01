@@ -1,0 +1,9 @@
+extends ../layout
+
+block content
+  if clients.length === 0
+      No clients currently connected.
+  else
+      each client in clients
+        a(href=`/logs/${client.ip}`)= client.name
+        br

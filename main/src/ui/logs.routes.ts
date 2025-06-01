@@ -1,9 +1,25 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import fs from 'node:fs';
 import readline from 'node:readline';
+import type { KeeneticApi } from '../keenetic-api.js';
 
-export function createLogsRouter({ logFilePath }: { logFilePath: string }): express.Router {
+export function createLogsRouter({ logFilePath, api }: { logFilePath: string, api: KeeneticApi }): express.Router {
   const router = express.Router();
+
+  // Route to display list of connected clients
+  router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const clients = await api.getClients();
+      res.render('logs/list', {
+        clients,
+        title: 'Logs',
+        currentPath: req.path
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
 
   router.get('/:ip', async (req: Request, res: Response, next: NextFunction) => {
     const clientIp = req.params.ip !== 'my' ? req.params.ip : req.ip?.replace('::ffff:', '')

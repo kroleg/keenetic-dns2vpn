@@ -20,12 +20,8 @@ export function startUI(logger: Logger, api: KeeneticApi) {
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'pug');
 
-  // Middleware to serve static files (e.g., CSS, client-side JS if you add any)
-  // app.use(express.static(path.join(__dirname, 'public'))); // Example if you create a 'public' folder
-
-  // Mount the services UI router
   app.use('/services', createServicesRouter(api));
-  app.use('/logs', createLogsRouter({ logFilePath: process.env.WATCH_FILE! }));
+  app.use('/logs', createLogsRouter({ logFilePath: process.env.WATCH_FILE!, api }));
 
   app.get('/', (req: Request, res: Response) => {
     res.redirect('/services');
