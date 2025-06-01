@@ -34,7 +34,7 @@ async function getHostnamesAndIpsForClient(logFile: string, targetClientIp: stri
     crlfDelay: Infinity
   });
 
-  const targetParsedLogs = []
+  const domainMap = new Map<string, any>(); // Map to store latest entry for each domain
 
   for await (const line of rl) {
     if (!line.trim()) continue;
@@ -46,13 +46,14 @@ async function getHostnamesAndIpsForClient(logFile: string, targetClientIp: stri
       continue;
     }
     if (entry.clientIp === targetClientIp) {
-      targetParsedLogs.push(entry)
+      domainMap.set(entry.hostname, entry);
     }
   }
 
-  targetParsedLogs.reverse();
+  const uniqueLogs = Array.from(domainMap.values())
+    .sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
 
-  return targetParsedLogs;
+  return uniqueLogs;
 }
 
 function formatShortDate(date: string) {
