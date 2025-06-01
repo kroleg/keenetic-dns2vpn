@@ -371,6 +371,51 @@ export class KeeneticApi {
     }
   }
 
+  async removeRoutesByCommentPrefix(commentPrefix: string): Promise<boolean> {
+    await this.ensureAuthenticated();
+    try {
+      const routes = await this.getRoutes();
+      const routesToRemove = routes.filter(route => route.comment.startsWith(commentPrefix));
+
+      if (routesToRemove.length === 0) {
+        this.logger.debug(`No routes found with comment prefix: ${commentPrefix}`);
+        return true;
+      }
+
+      const payloadPrefix = {
+        webhelp: { event: { push: { data: JSON.stringify({ type: "configuration_change", value: { url: "/staticRoutes" } }) } } }
+      };
+      const payloadSuffix = { system: { configuration: { save: {} } } };
+
+      const commands = routesToRemove.map(route => ({
+        ip: {
+          route: {
+            no: true,
+            ...(route.network && route.mask ? {
+              network: route.network,
+              mask: route.mask
+            } : {
+              host: route.host
+            }),
+            comment: route.comment
+          }
+        }
+      }));
+
+      const result = await this.postWithAuth('/rci/', [
+        payloadPrefix,
+        ...commands,
+        payloadSuffix
+      ]);
+
+      this.logger.debug('Route removal response:', JSON.stringify(result.data));
+      return true;
+    } catch (error) {
+      this.logger.error('Error removing routes:', error);
+      return false;
+    }
+  }
+
 }
 
 

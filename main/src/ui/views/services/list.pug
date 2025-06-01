@@ -46,6 +46,8 @@ block content
                       .domain-group
                         strong= domainName
                         div.routes= domain.map(route => route.host).join(', ')
+                  form(method='POST' action=`/services/remove-routes/${service.id}` onsubmit='return confirm("Are you sure you want to remove all routes for this service?");')
+                    button.outline.secondary(type='submit') Remove Routes
                 else
                   | No routes
               td
