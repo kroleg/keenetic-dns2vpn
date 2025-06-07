@@ -6,5 +6,6 @@ export const defaultConfig = {
     // { host: '8.8.4.4', port: 53 }
   ],
   logResolvedToFile: process.env.LOG_RESOLVED_TO_FILE || '../shared-logs/dns-proxy.log',
+  hostToIpFile: process.env.HOST_TO_IP_FILE || '../host2ip.txt',
   // timeout: 5000,
 };

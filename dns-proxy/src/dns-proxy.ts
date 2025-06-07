@@ -10,6 +10,7 @@ export class DnsProxy {
   private server: dgram.Socket;
   private logger: Logger;
   private logResolvedToFile: string;
+  private hostToIpMap: Map<string, string[]> = new Map();
 
   constructor(private config: typeof defaultConfig) {
     this.logger = createLogger(config.logLevel);
@@ -18,6 +19,26 @@ export class DnsProxy {
     this.logResolvedToFile = config.logResolvedToFile;
     // Create the log file if it doesn't exist, so on first run there will be no need to manually create it
     fs.writeFile(this.logResolvedToFile, '');
+    // Load host-to-IP mapping
+    this.loadHostToIpMap();
+  }
+
+  private async loadHostToIpMap() {
+    try {
+      const file = await fs.readFile(this.config.hostToIpFile, 'utf-8');
+      this.hostToIpMap.clear();
+      for (const line of file.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const [host, ...ips] = trimmed.split(/\s+/);
+        if (host && ips.length > 0) {
+          this.hostToIpMap.set(host, ips);
+        }
+      }
+      this.logger.info(`Loaded host-to-IP map from ${this.config.hostToIpFile}`);
+    } catch (err) {
+      this.logger.warn(`Could not load host-to-IP map: ${err}`);
+    }
   }
 
   private async logResolvedHost(params: { clientIp: string, hostname: string, ips: string[] }) {
@@ -60,6 +81,28 @@ export class DnsProxy {
       class: question.class
     });
 
+    // Check host-to-IP map first
+    const mappedIps = this.hostToIpMap.get(question.name);
+    if (question.type === 'A' && mappedIps) {
+      // Build DNS response
+      const response = dnsPacket.encode({
+        id: query.id,
+        type: 'response',
+        flags: 0x8180, // Standard response with recursion available
+        questions: [question],
+        answers: mappedIps.map(ip => ({
+          type: 'A',
+          name: question.name,
+          ttl: 300,
+          class: 'IN',
+          data: ip
+        }))
+      });
+      this.logger.info(`client: ${clientIp} query: ${question.name} response (local): ${mappedIps}`);
+      await this.logResolvedHost({ clientIp, hostname: question.name, ips: mappedIps });
+      return response;
+    }
+
     // Create a UDP client for the upstream server
     const client = dgram.createSocket('udp4');
     const upstreamServer = this.config.upstreamServers[0]; // TODO: Implement round-robin
@@ -67,7 +110,7 @@ export class DnsProxy {
     try {
       const response = await new Promise<Buffer>((resolve, reject) => {
         client.on('error', reject);
-        client.on('message', (response) => {
+        client.on('message', (response: Buffer) => {
           resolve(response);
           client.close();
         });

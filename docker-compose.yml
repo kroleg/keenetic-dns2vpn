@@ -22,9 +22,11 @@ services:
       context: ./dns-proxy
     environment:
       - LOG_RESOLVED_TO_FILE=/logs/dns-proxy.log
+      - HOST_TO_IP_FILE=/config/host-to-ip.txt
     ports:
       - "53:53/tcp"
       - "53:53/udp"
     volumes:
       - ./shared-logs:/logs
+      - ./config:/config
     restart: unless-stopped
