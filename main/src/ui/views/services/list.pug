@@ -43,9 +43,10 @@ block content
                     strong= service.matchingDomains.join(', ')
                     br
                     each domain, domainName in routesByDomain
-                      .domain-group
-                        strong= domainName
-                        div.routes= domain.map(route => route.host).join(', ')
+                      if !domainName.includes('.googlevideo.com')
+                        .domain-group
+                          strong= domainName
+                          div.routes= domain.map(route => route.host).join(', ')
                   form(method='POST' action=`/services/remove-routes/${service.id}` onsubmit='return confirm("Are you sure you want to remove all routes for this service?");')
                     button.outline.secondary(type='submit') Remove Routes
                 else
