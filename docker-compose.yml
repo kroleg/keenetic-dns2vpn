@@ -16,6 +16,7 @@ services:
       - KEENETIC_HOST=${KEENETIC_HOST}
       - KEENETIC_LOGIN=${KEENETIC_LOGIN}
       - KEENETIC_PASSWORD=${KEENETIC_PASSWORD}
+    restart: unless-stopped
 
   dns-proxy:
     build:
