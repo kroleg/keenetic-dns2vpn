@@ -351,6 +351,7 @@ export class KeeneticApi {
   async getClients(): Promise<{
     name: string;
     ip: string;
+    policy?: string;
   }[]> {
     await this.ensureAuthenticated();
     try {
@@ -361,6 +362,7 @@ export class KeeneticApi {
           .map((client: any) => ({
             name: client.name || 'Unknown',
             ip: client.ip || '',
+            policy: (client.policy || client.classifier || client["ip-policy"] || client.connection_policy || '').toString() || undefined,
           }));
       }
       this.logger.error(`Failed to get clients. Status: ${response.status}, Data: ${JSON.stringify(response.data)}`);
@@ -368,6 +370,22 @@ export class KeeneticApi {
     } catch (error) {
       this.logger.error('Error fetching clients:', error);
       return [];
+    }
+  }
+
+  async getClientsPolicies(): Promise<Record<string, any>> {
+    await this.ensureAuthenticated();
+    try {
+      const response = await this.getWithAuth('/rci/rc/show/ip/hotspot/host');
+      if (response.status === 200) {
+        console.dir(response, {depth:null})
+        return (response.data as Record<string, any>) || {};
+      }
+      this.logger.error(`Failed to get client policies. Status: ${response.status}, Data: ${JSON.stringify(response.data)}`);
+      return {};
+    } catch (error) {
+      this.logger.error('Error fetching client policies:', error);
+      return {};
     }
   }
 

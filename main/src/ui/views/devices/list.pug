@@ -1,0 +1,25 @@
+extends ../layout
+
+block content
+  article
+    if clients.length === 0
+      p No devices currently connected.
+    else
+      table
+        thead
+          tr
+            th Name
+            th IP
+            th Connection policy
+            th Logs
+        tbody
+          each client in clients
+            - const policyId = client.policy
+            - const policyInfo = policyId && policies[policyId]
+            - const policyName = policyInfo ? (policyInfo.description || policyInfo.name || policyId) : (policyId || '—')
+            tr
+              td= client.name
+              td= client.ip
+              td= policyName
+              td
+                a(href=`/devices/${client.ip}`) View

@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServicesRouter } from './services.routes.js';
 import { createLogsRouter } from './logs.routes.js';
+import { createDevicesRouter } from './devices.routes.js';
 import type { Logger } from 'winston';
 import type { KeeneticApi } from '../keenetic-api.js';
 
@@ -22,6 +23,7 @@ export function startUI(logger: Logger, api: KeeneticApi) {
 
   app.use('/services', createServicesRouter(api));
   app.use('/logs', createLogsRouter({ logFilePath: process.env.WATCH_FILE!, api }));
+  app.use('/devices', createDevicesRouter(api));
 
   app.get('/', (req: Request, res: Response) => {
     res.redirect('/services');
