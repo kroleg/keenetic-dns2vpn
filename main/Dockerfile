@@ -1,7 +1,8 @@
 # Stage 1: Build the application
-FROM node:22-slim AS builder
+FROM node:22 AS builder
 
 WORKDIR /usr/app
+
 
 # Install pnpm
 RUN npm install -g pnpm@10
