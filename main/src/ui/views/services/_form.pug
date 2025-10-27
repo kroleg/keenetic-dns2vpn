@@ -24,4 +24,4 @@ form
 
     .grid
       button(type='submit')= service.id ? 'Update Service' : 'Create Service'
-      a.button.secondary(href='/services' role='button') Cancel
+      a.button.secondary(href=service.id ? `/services/${service.id}` : '/services' role='button') Cancel

@@ -31,15 +31,40 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
     const services = await serviceRepository.getAllServices();
     const interfaces = await api.getInterfaces();
     const notConnectedInterfaces = interfaces.filter(i => !i.connected)
-    const routes = await api.getRoutes();
 
-    const servicesWithRoutes: ServiceWithRoutes[] = services.map(service => ({
+    const servicesWithInterfaceNames = services.map(service => ({
       ...service,
       interfaces: service.interfaces.map(ifaceIdOrName => interfaces.find(i => i.name === ifaceIdOrName || i.id === ifaceIdOrName)?.name || ifaceIdOrName),
-      routes: routes.filter(route => route.comment && route.comment.includes(service.name))
     }));
 
-    res.render('services/list', { services: servicesWithRoutes, interfaces, notConnectedInterfaces, title: 'Services', currentPath: req.path });
+    res.render('services/list', { services: servicesWithInterfaceNames, interfaces, notConnectedInterfaces, title: 'Services', currentPath: req.path });
+  });
+
+  servicesRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        res.status(400).send('Invalid service ID');
+        return;
+      }
+      const service = await serviceRepository.getServiceById(id);
+      if (!service) {
+        res.status(404).send('Service not found');
+        return;
+      }
+      const interfaces = await api.getInterfaces();
+      const routes = await api.getRoutes();
+
+      const serviceWithRoutes: ServiceWithRoutes = {
+        ...service,
+        interfaces: service.interfaces.map(ifaceIdOrName => interfaces.find(i => i.name === ifaceIdOrName || i.id === ifaceIdOrName)?.name || ifaceIdOrName),
+        routes: routes.filter(route => route.comment && route.comment.includes(service.name))
+      };
+
+      res.render('services/detail', { service: serviceWithRoutes, title: `Service: ${service.name}`, currentPath: req.path });
+    } catch (error) {
+      next(error);
+    }
   });
 
   // Route to display form for creating a new service
@@ -170,7 +195,7 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
       return;
     }
 
-    res.redirect('/services');
+    res.redirect(`/services/${id}`);
   });
 
   // Basic error handler (you should have a more sophisticated one in your main app.ts)

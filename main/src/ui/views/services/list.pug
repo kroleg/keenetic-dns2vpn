@@ -24,34 +24,9 @@ block content
         tbody
           each service in services
             tr
-              td= service.name
-              td= service.interfaces.join(', ')
               td
-                if service.routes.length > 0
-                  - const routesByDomain = {}
-                  - const routesByInterface = {}
-                  each route in service.routes
-                    if route.comment && route.comment.startsWith('dns-auto:')
-                      - const domain = route.comment.split(':')[2]
-                      - if (!routesByDomain[domain]) routesByDomain[domain] = []
-                      - routesByDomain[domain].push(route)
-                    else
-                      - if (!routesByInterface[route.interface]) routesByInterface[route.interface] = []
-                      - routesByInterface[route.interface].push(route)
-
-                  if Object.keys(routesByDomain).length > 0
-                    strong= service.matchingDomains.join(', ')
-                    br
-                    each domain, domainName in routesByDomain
-                      if !domainName.includes('.googlevideo.com')
-                        .domain-group
-                          strong= domainName
-                          div.routes= domain.map(route => route.host).join(', ')
-                  form(method='POST' action=`/services/remove-routes/${service.id}` onsubmit='return confirm("Are you sure you want to remove all routes for this service?");')
-                    button.outline.secondary(type='submit') Remove Routes
-                else
-                  | No routes
+                a(href=`/services/${service.id}`)= service.name
+              td= service.interfaces.join(', ')
+              td= service.matchingDomains.join(', ')
               td
                 a.button.secondary(href=`/services/update/${service.id}`) Edit
-                form(method='POST' action=`/services/delete/${service.id}` style='display: inline;' onsubmit='return confirm("Are you sure you want to delete this service?");')
-                  button.button.contrast(type='submit') Delete

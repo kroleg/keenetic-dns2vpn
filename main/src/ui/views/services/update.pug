@@ -1,6 +1,16 @@
 extends ../layout.pug
 
 block content
-  h2 Update Service: #{service.name}
-  form(method='POST' action=`/services/update/${service.id}`)
-    include _form.pug
+  article
+    header
+      nav(aria-label="breadcrumb")
+        ul
+          li
+            a(href="/services") Services
+          li
+            a(href=`/services/${service.id}`) #{service.name}
+          li Edit
+      h2 Update Service: #{service.name}
+
+    form(method='POST' action=`/services/update/${service.id}`)
+      include _form.pug
