@@ -1,27 +1,29 @@
 if error
-  article.alert.alert-error= error
+  .alert.alert-danger(role='alert')= error
 
-form
-  fieldset
-    label(for='name') Service Name:
-    input#name(type='text' name='name' value=service.name required)
+.mb-3
+  label.form-label(for='name') Service Name:
+  input#name.form-control(type='text' name='name' value=service.name required)
 
-    label(for='interfaces') Interfaces (comma-separated)
-    ul
-      each iface in interfaces
-        li
-          if !iface.connected
-            = '(❌ NOT CONNECTED) '
-          = iface.id
-          = ' = '
-          = iface.name
-    textarea#interfaces(name='interfaces' rows='3')= Array.isArray(service.interfaces) ? service.interfaces.join(', ') : service.interfaces
-    small Example: eth0, br-lan
+.mb-3
+  label.form-label(for='interfaces') Interfaces (comma-separated)
+  ul.list-group.mb-2
+    each iface in interfaces
+      li.list-group-item.d-flex.align-items-center
+        if !iface.connected
+          span.badge.bg-danger.me-2 NOT CONNECTED
+        span.text-muted.me-2= iface.id
+        span.text-muted.me-1 =
+        span= iface.name
+  textarea#interfaces.form-control(name='interfaces' rows='3')= Array.isArray(service.interfaces) ? service.interfaces.join(', ') : service.interfaces
+  .form-text Example: eth0, br-lan
 
-    label(for='matchingDomains') Matching Domains (comma-separated). *.domain.com will match domain.com and all subdomains.
-    textarea#matchingDomains(name='matchingDomains' rows='3')= Array.isArray(service.matchingDomains) ? service.matchingDomains.join(', ') : service.matchingDomains
-    small Example: "google.com, *.example.com"
+.mb-3
+  label.form-label(for='matchingDomains') Matching Domains (comma-separated)
+  .form-text.mb-2 *.domain.com will match domain.com and all subdomains.
+  textarea#matchingDomains.form-control(name='matchingDomains' rows='3')= Array.isArray(service.matchingDomains) ? service.matchingDomains.join(', ') : service.matchingDomains
+  .form-text Example: "google.com, *.example.com"
 
-    .grid
-      button(type='submit')= service.id ? 'Update Service' : 'Create Service'
-      a.button.secondary(href=service.id ? `/services/${service.id}` : '/services' role='button') Cancel
+.d-flex.gap-2.mt-4
+  button.btn.btn-primary(type='submit')= service.id ? 'Update Service' : 'Create Service'
+  a.btn.btn-secondary(href=service.id ? `/services/${service.id}` : '/services') Cancel

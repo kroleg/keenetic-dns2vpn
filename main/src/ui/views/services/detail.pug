@@ -1,93 +1,99 @@
 extends ../layout
 
 block content
-  article
-    header
+  .card
+    .card-body
       nav(aria-label="breadcrumb")
-        ul
-          li
+        ol.breadcrumb
+          li.breadcrumb-item
             a(href="/services") Services
-          li #{service.name}
-      h1 #{service.name}
+          li.breadcrumb-item.active(aria-current="page") #{service.name}
+      h2.card-title #{service.name}
 
-    section
-      h3 Service Details
-      dl
-        dt Name
-        dd #{service.name}
+      .mt-4
+        h4 Service Details
+        dl.row
+          dt.col-sm-3 Name
+          dd.col-sm-9 #{service.name}
 
-        dt Interfaces
-        dd #{service.interfaces.join(', ')}
+          dt.col-sm-3 Interfaces
+          dd.col-sm-9 #{service.interfaces.join(', ')}
 
-        dt Matching Domains
-        dd #{service.matchingDomains.join(', ')}
+          dt.col-sm-3 Matching Domains
+          dd.col-sm-9 #{service.matchingDomains.join(', ')}
 
-    section
-      h3 Routes
-      - const routesByDomain = service.routes.filter(route => route.comment?.startsWith('dns-auto:')).reduce((acc, route) => {
-      -   const domain = route.comment.split(':')[2];
-      -   if (!acc[domain]) acc[domain] = [];
-      -   acc[domain].push(route);
-      -   return acc;
-      - }, {});
-      - const routesByInterface = service.routes.filter(route => !route.comment?.startsWith('dns-auto:'));
+      .mt-4
+        h4 Routes
+        - const routesByDomain = service.routes.filter(route => route.comment?.startsWith('dns-auto:')).reduce((acc, route) => {
+        -   const domain = route.comment.split(':')[2];
+        -   if (!acc[domain]) acc[domain] = [];
+        -   acc[domain].push(route);
+        -   return acc;
+        - }, {});
+        - const routesByInterface = service.routes.filter(route => !route.comment?.startsWith('dns-auto:'));
 
-      if service.routes.length === 0
-        p
-          em No routes found for this service.
-      else
-        if Object.keys(routesByDomain).length > 0
-          h4 Auto-generated Routes (by Domain)
-          each routes, domain in routesByDomain
-            - const filteredRoutes = routes.filter(route => !route.host?.includes('googlevideo.com'));
-            if filteredRoutes.length > 0
-              details(open)
-                summary
-                  strong #{domain}
-                  |  (#{filteredRoutes.length} routes)
-                table
-                  thead
+        if service.routes.length === 0
+          p.text-muted
+            em No routes found for this service.
+        else
+          if Object.keys(routesByDomain).length > 0
+            h5.mt-3 Auto-generated Routes (by Domain)
+            .accordion#routesAccordion
+              each routes, domain in routesByDomain
+                - const filteredRoutes = routes.filter(route => !route.host?.includes('googlevideo.com'));
+                if filteredRoutes.length > 0
+                  .accordion-item
+                    h2.accordion-header(id=`heading-${domain.replace(/\./g, '-')}`)
+                      button.accordion-button(type='button' data-bs-toggle='collapse' data-bs-target=`#collapse-${domain.replace(/\./g, '-')}` aria-expanded='true' aria-controls=`collapse-${domain.replace(/\./g, '-')}`)
+                        strong.me-2 #{domain}
+                        span.badge.bg-primary #{filteredRoutes.length} routes
+                    .accordion-collapse.collapse.show(id=`collapse-${domain.replace(/\./g, '-')}` aria-labelledby=`heading-${domain.replace(/\./g, '-')}` data-bs-parent='#routesAccordion')
+                      .accordion-body
+                        .table-responsive
+                          table.table.table-sm.table-striped
+                            thead
+                              tr
+                                th Host IP
+                                th Interface
+                                th Gateway
+                                th Comment
+                            tbody
+                              each route in filteredRoutes
+                                tr
+                                  td #{route.host || route.network}
+                                  td #{route.interface}
+                                  td #{route.gateway || '-'}
+                                  td
+                                    small.text-muted #{route.comment}
+
+          if routesByInterface.length > 0
+            h5.mt-4 Manual Routes
+            .table-responsive
+              table.table.table-striped.table-hover
+                thead
+                  tr
+                    th Network
+                    th Mask
+                    th Host
+                    th Interface
+                    th Gateway
+                    th Comment
+                tbody
+                  each route in routesByInterface
                     tr
-                      th Host IP
-                      th Interface
-                      th Gateway
-                      th Comment
-                  tbody
-                    each route in filteredRoutes
-                      tr
-                        td #{route.host || route.network}
-                        td #{route.interface}
-                        td #{route.gateway || '-'}
-                        td
-                          small #{route.comment}
+                      td #{route.network || '-'}
+                      td #{route.mask || '-'}
+                      td #{route.host || '-'}
+                      td #{route.interface}
+                      td #{route.gateway || '-'}
+                      td
+                        small.text-muted #{route.comment || '-'}
 
-        if routesByInterface.length > 0
-          h4 Manual Routes
-          table
-            thead
-              tr
-                th Network
-                th Mask
-                th Host
-                th Interface
-                th Gateway
-                th Comment
-            tbody
-              each route in routesByInterface
-                tr
-                  td #{route.network || '-'}
-                  td #{route.mask || '-'}
-                  td #{route.host || '-'}
-                  td #{route.interface}
-                  td #{route.gateway || '-'}
-                  td
-                    small #{route.comment || '-'}
-
-    footer
-      div(role="group")
-        a(href=`/services/update/${service.id}` role="button" class="secondary") Edit Service
-        form(method="POST" action=`/services/remove-routes/${service.id}` style="display: inline;" onsubmit="return confirm('Are you sure you want to remove all routes for this service?')")
-          button(type="submit" class="secondary") Remove All Routes
-        form(method="POST" action=`/services/delete/${service.id}` style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this service?')")
-          button(type="submit" class="contrast") Delete Service
-        a(href="/services" role="button") Back to Services
+    .card-footer
+      .btn-group(role="group" aria-label="Service actions")
+        a.btn.btn-secondary(href=`/services/update/${service.id}`) Edit Service
+        form.d-inline(method="POST" action=`/services/remove-routes/${service.id}` onsubmit="return confirm('Are you sure you want to remove all routes for this service?')")
+          button.btn.btn-warning(type="submit") Remove All Routes
+        form.d-inline(method="POST" action=`/services/delete/${service.id}` onsubmit="return confirm('Are you sure you want to delete this service?')")
+          button.btn.btn-danger(type="submit") Delete Service
+      a.btn.btn-outline-secondary.ms-2(href="/services") Back to Services

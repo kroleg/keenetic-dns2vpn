@@ -1,6 +1,8 @@
 extends ../layout.pug
 
 block content
-  h2 Create New Service
-  form(method='POST' action='/services/create')
-    include _form.pug
+  .card
+    .card-body
+      h2.card-title Create New Service
+      form(method='POST' action='/services/create')
+        include _form.pug

@@ -1,16 +1,16 @@
 extends ../layout.pug
 
 block content
-  article
-    header
+  .card
+    .card-body
       nav(aria-label="breadcrumb")
-        ul
-          li
+        ol.breadcrumb
+          li.breadcrumb-item
             a(href="/services") Services
-          li
+          li.breadcrumb-item
             a(href=`/services/${service.id}`) #{service.name}
-          li Edit
-      h2 Update Service: #{service.name}
+          li.breadcrumb-item.active(aria-current="page") Edit
+      h2.card-title Update Service: #{service.name}
 
-    form(method='POST' action=`/services/update/${service.id}`)
-      include _form.pug
+      form(method='POST' action=`/services/update/${service.id}`)
+        include _form.pug

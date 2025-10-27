@@ -1,11 +1,11 @@
 extends ../layout
 
 block content
-  article
-    if clients.length === 0
-      p No clients currently connected.
-    else
-      ul
-        each client in clients
-          li
-            a(href=`/logs/${client.ip}`)= client.name
+  .card
+    .card-body
+      if clients.length === 0
+        p.text-muted No clients currently connected.
+      else
+        .list-group
+          each client in clients
+            a.list-group-item.list-group-item-action(href=`/logs/${client.ip}`)= client.name
