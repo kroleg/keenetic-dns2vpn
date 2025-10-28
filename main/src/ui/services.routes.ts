@@ -40,6 +40,12 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
     res.render('services/list', { services: servicesWithInterfaceNames, interfaces, notConnectedInterfaces, title: 'Services', currentPath: req.path });
   });
 
+  // Route to display form for creating a new service
+  servicesRouter.get('/create', async (req: Request, res: Response) => {
+    const interfaces = await api.getInterfaces();
+    res.render('services/create', { title: 'Create New Service', service: {}, error: null, currentPath: req.path, interfaces });
+  });
+
   servicesRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = parseInt(req.params.id, 10);
@@ -65,12 +71,6 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
     } catch (error) {
       next(error);
     }
-  });
-
-  // Route to display form for creating a new service
-  servicesRouter.get('/create', async (req: Request, res: Response) => {
-    const interfaces = await api.getInterfaces();
-    res.render('services/create', { title: 'Create New Service', service: {}, error: null, currentPath: req.path, interfaces });
   });
 
   // Route to handle creation of a new service
