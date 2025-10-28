@@ -43,7 +43,24 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
   // Route to display form for creating a new service
   servicesRouter.get('/create', async (req: Request, res: Response) => {
     const interfaces = await api.getInterfaces();
-    res.render('services/create', { title: 'Create New Service', service: {}, error: null, currentPath: req.path, interfaces });
+
+    // Extract query parameters for prefilling
+    const { interfaces: ifacesParam, domain } = req.query;
+
+    const service: Partial<serviceRepository.Service> = {};
+
+    // Prefill interfaces if provided
+    if (ifacesParam && typeof ifacesParam === 'string') {
+      service.interfaces = stringToArray(ifacesParam);
+    }
+
+    // Prefill name and matchingDomains if domain is provided
+    if (domain && typeof domain === 'string') {
+      service.name = domain;
+      service.matchingDomains = [domain];
+    }
+
+    res.render('services/create', { title: 'Create New Service', service, error: null, currentPath: req.path, interfaces });
   });
 
   servicesRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
