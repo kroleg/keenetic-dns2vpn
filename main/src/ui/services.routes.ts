@@ -1,6 +1,7 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import * as serviceRepository from '../storage/service.repository.js';
 import type { KeeneticApi } from '../keenetic-api.js';
+import { getLastUniqueDnsRequests, matchDomainsAgainstPatterns, extractUniqueIps } from '../utils/dns-log-processor.js';
 
 const stringToArray = (input?: string): string[] => {
   if (!input) return [];
@@ -20,7 +21,7 @@ type ServiceWithRoutes = serviceRepository.Service & {
   }[];
 };
 
-export function createServicesRouter(api: KeeneticApi): express.Router {
+export function createServicesRouter(api: KeeneticApi, logFilePath?: string): express.Router {
   const servicesRouter = express.Router();
 
   // Middleware to parse URL-encoded data (for form submissions)
@@ -99,8 +100,45 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
         interfaces: stringToArray(interfaces),
         matchingDomains: stringToArray(matchingDomains),
       };
-      await serviceRepository.createService(newServiceData);
-      res.redirect('/services');
+      const newService = await serviceRepository.createService(newServiceData);
+
+      // Process last 100 DNS requests and add matching domains to VPN routing
+      if (logFilePath && newServiceData.matchingDomains.length > 0) {
+        try {
+          // Get last 100 unique DNS requests
+          const dnsRequests = await getLastUniqueDnsRequests(logFilePath, 100);
+
+          // Extract all hostnames
+          const hostnames = dnsRequests.map(req => req.hostname);
+
+          // Find matching domains
+          const matchedDomains = matchDomainsAgainstPatterns(hostnames, newServiceData.matchingDomains);
+
+          if (matchedDomains.length > 0) {
+            // Filter DNS requests to only those with matched domains
+            const matchedRequests = dnsRequests.filter(req => matchedDomains.includes(req.hostname));
+
+            // Extract unique IPs from matched requests
+            const ips = extractUniqueIps(matchedRequests);
+
+            if (ips.length > 0) {
+              console.log(`Adding ${ips.length} IPs for ${matchedDomains.length} matched domains to VPN routing for service "${name}"`);
+
+              // Add routes for the matched IPs
+              await api.addStaticRoutesForService({
+                ips,
+                interfaces: newServiceData.interfaces,
+                comment: `dns-auto:${name}`,
+              });
+            }
+          }
+        } catch (dnsError) {
+          console.error('Error processing DNS logs for new service:', dnsError);
+          // Continue even if DNS processing fails - service is already created
+        }
+      }
+
+      res.redirect('/services/' + newService.id);
     } catch (error) {
       console.error('Create service error:', error);
       // Check for unique constraint error (specific to SQLite, might need adjustment for other DBs)

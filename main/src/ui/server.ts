@@ -21,8 +21,10 @@ export function startUI(logger: Logger, api: KeeneticApi) {
   app.set('views', path.join(__dirname, 'views'));
   app.set('view engine', 'pug');
 
-  app.use('/services', createServicesRouter(api));
-  app.use('/logs', createLogsRouter({ logFilePath: process.env.WATCH_FILE!, api }));
+  // TODO: refactor to pass logFile service instead of file path
+  const logFilePath = process.env.WATCH_FILE!;
+  app.use('/services', createServicesRouter(api, logFilePath));
+  app.use('/logs', createLogsRouter({ logFilePath, api }));
   app.use('/devices', createDevicesRouter(api));
 
   app.get('/', (req: Request, res: Response) => {
