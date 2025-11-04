@@ -91,20 +91,28 @@ export class KeeneticApi {
         ips: string[];
         interfaces: string[];
         comment: string;
+        network?: string;
+        mask?: string;
       }
     ) {
       const payloadPrefix = {
         webhelp: { event: { push: { data: JSON.stringify({ type: "configuration_change", value: { url: "/staticRoutes" } }) } } }
       }
       const payloadSuffix = { system: { configuration: { save: {} } } }
-      const { interfaces, ips: hosts, comment } = service
-      const commands = hosts.flatMap(host => {
-        return (interfaces || ['Wireguard0']).map(iface => {
-          return {
-              ip: { route: { host, interface: iface, auto: true, comment, }, },
-          };
-        })
-      })
+      const { interfaces, ips: hosts, comment, network, mask } = service
+
+      // If network and mask are provided, add network route instead of host routes
+      const commands = network && mask
+        ? (interfaces || ['Wireguard0']).map(iface => ({
+            ip: { route: { network, mask, interface: iface, auto: true, comment } }
+          }))
+        : hosts.flatMap(host => {
+            return (interfaces || ['Wireguard0']).map(iface => {
+              return {
+                  ip: { route: { host, interface: iface, auto: true, comment, }, },
+              };
+            })
+          });
 
       const result = await this.postWithAuth('/rci/', [
         payloadPrefix,

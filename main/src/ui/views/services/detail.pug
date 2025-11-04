@@ -22,6 +22,13 @@ block content
           dt.col-sm-3 Matching Domains
           dd.col-sm-9 #{service.matchingDomains.join(', ')}
 
+          dt.col-sm-3 Route Optimization
+          dd.col-sm-9
+            if service.optimizeRoutes
+              span.badge.bg-success Enabled
+            else
+              span.badge.bg-secondary Disabled
+
       .mt-4
         h4 Routes
         - const routesByDomain = service.routes.filter(route => route.comment?.startsWith('dns-auto:')).reduce((acc, route) => {

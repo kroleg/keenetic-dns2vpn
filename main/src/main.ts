@@ -5,6 +5,7 @@ import { getAllServices, type Service } from "./storage/service.repository.js";
 import { runMigrations } from "./storage/db.js";
 import { startUI } from "./ui/server.js";
 import { matchWithoutStars, wildcardDomainMatch } from "./matcher.js";
+import { optimizeRoutes, calculateOptimizationStats } from "./utils/route-optimizer.js";
 
 const logger = createLogger(process.env.LOG_LEVEL || 'info');
 
@@ -54,6 +55,71 @@ async function fetchMatchers() {
 const refetchMatchersInterval = setInterval(fetchMatchers, 60 * 1000); // every 60 seconds
 fetchMatchers()
 
+// Route optimization job
+async function optimizeServiceRoutes() {
+  try {
+    const services = await getAllServices();
+    const servicesToOptimize = services.filter(s => s.optimizeRoutes);
+
+    if (servicesToOptimize.length === 0) {
+      logger.debug('No services with route optimization enabled');
+      return;
+    }
+
+    logger.info(`Running route optimization for ${servicesToOptimize.length} service(s)`);
+
+    // Fetch all current routes
+    const allRoutes = await api.getRoutes();
+
+    for (const service of servicesToOptimize) {
+      const commentPrefix = `dns-auto:${service.name}`;
+
+      // Optimize routes for this service
+      const { routesToAdd, routesToRemove } = optimizeRoutes(allRoutes, commentPrefix);
+
+      if (routesToAdd.length === 0) {
+        logger.debug(`No optimization possible for service: ${service.name}`);
+        continue;
+      }
+
+      // Calculate stats
+      const stats = calculateOptimizationStats(routesToAdd, routesToRemove);
+      logger.info(
+        `Service "${service.name}": Optimizing ${stats.originalCount} routes into ${stats.optimizedCount} network routes ` +
+        `(${stats.reduction} routes removed, ${stats.reductionPercent}% reduction)`
+      );
+
+      // Remove old host routes
+      for (const route of routesToRemove) {
+        await api.removeRoutesByCommentPrefix(route.comment);
+      }
+
+      // Add optimized network routes
+      for (const route of routesToAdd) {
+        await api.addStaticRoutesForService({
+          ips: [], // Not used for network routes
+          interfaces: [route.interface],
+          comment: route.comment,
+          network: route.network,
+          mask: route.mask,
+        });
+      }
+
+      logger.info(`Route optimization completed for service: ${service.name}`);
+    }
+  } catch (error) {
+    logger.error('Error during route optimization:', error);
+  }
+}
+
+// Schedule route optimization job
+const optimizationInterval = parseInt(process.env.ROUTE_OPTIMIZATION_INTERVAL || '300000', 10); // default 5 minutes
+const routeOptimizationInterval = setInterval(optimizeServiceRoutes, optimizationInterval);
+logger.info(`Route optimization job scheduled every ${optimizationInterval / 1000} seconds`);
+
+// Run optimization once at startup
+optimizeServiceRoutes();
+
 await startFileWatcher({
   logFilePath: process.env.WATCH_FILE || 'dns-proxy.log',
   onLine: (line) => {
@@ -93,6 +159,7 @@ await startFileWatcher({
 const { gracefulShutdown: gracefulShutdownUI } = startUI(logger, api);
 function gracefulShutdown () {
   clearInterval(refetchMatchersInterval)
+  clearInterval(routeOptimizationInterval)
   gracefulShutdownUI()
 }
 

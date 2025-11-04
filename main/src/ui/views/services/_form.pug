@@ -24,6 +24,11 @@ if error
   textarea#matchingDomains.form-control(name='matchingDomains' rows='3')= Array.isArray(service.matchingDomains) ? service.matchingDomains.join(', ') : service.matchingDomains
   .form-text Example: "google.com, *.example.com"
 
+.mb-3.form-check
+  input#optimizeRoutes.form-check-input(type='checkbox' name='optimizeRoutes' checked=service.optimizeRoutes)
+  label.form-check-label(for='optimizeRoutes') Optimize Routes
+  .form-text Automatically consolidate host routes into network routes (max /22 subnet)
+
 .d-flex.gap-2.mt-4
   button.btn.btn-primary(type='submit')= service.id ? 'Update Service' : 'Create Service'
   a.btn.btn-secondary(href=service.id ? `/services/${service.id}` : '/services') Cancel

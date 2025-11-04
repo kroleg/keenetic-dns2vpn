@@ -93,12 +93,13 @@ export function createServicesRouter(api: KeeneticApi, logFilePath?: string): ex
 
   // Route to handle creation of a new service
   servicesRouter.post('/create', async (req: Request, res: Response, next: NextFunction) => {
-    const { name, interfaces, matchingDomains } = req.body;
+    const { name, interfaces, matchingDomains, optimizeRoutes } = req.body;
     try {
       const newServiceData: serviceRepository.NewService = {
         name,
         interfaces: stringToArray(interfaces),
         matchingDomains: stringToArray(matchingDomains),
+        optimizeRoutes: optimizeRoutes === 'on' || optimizeRoutes === 'true',
       };
       const newService = await serviceRepository.createService(newServiceData);
 
@@ -178,7 +179,7 @@ export function createServicesRouter(api: KeeneticApi, logFilePath?: string): ex
   // Route to handle update of an existing service
   servicesRouter.post('/update/:id', async (req, res, next) => {
     const id = parseInt(req.params.id, 10);
-    const { name, interfaces, matchingDomains } = req.body;
+    const { name, interfaces, matchingDomains, optimizeRoutes } = req.body;
     try {
       if (isNaN(id)) {
         res.status(400).send('Invalid service ID');
@@ -189,6 +190,7 @@ export function createServicesRouter(api: KeeneticApi, logFilePath?: string): ex
         name,
         interfaces: stringToArray(interfaces),
         matchingDomains: stringToArray(matchingDomains),
+        optimizeRoutes: optimizeRoutes === 'on' || optimizeRoutes === 'true',
       };
       const updatedService = await serviceRepository.updateService(id, updateData);
       if (!updatedService) {
