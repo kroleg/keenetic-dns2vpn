@@ -2,6 +2,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import * as serviceRepository from '../storage/service.repository.js';
 import type { KeeneticApi } from '../keenetic-api.js';
 import { getLastUniqueDnsRequests, matchDomainsAgainstPatterns, extractUniqueIps } from '../utils/dns-log-processor.js';
+import { filterIpsCoveredByOptimizedRoutes } from '../utils/route-optimizer.js';
 
 const stringToArray = (input?: string): string[] => {
   if (!input) return [];
@@ -120,7 +121,26 @@ export function createServicesRouter(api: KeeneticApi, logFilePath?: string): ex
             const matchedRequests = dnsRequests.filter(req => matchedDomains.includes(req.hostname));
 
             // Extract unique IPs from matched requests
-            const ips = extractUniqueIps(matchedRequests);
+            let ips = extractUniqueIps(matchedRequests);
+
+            // If optimize routes is enabled, check if IPs are already covered by optimized routes
+            if (newServiceData.optimizeRoutes) {
+              const currentRoutes = await api.getRoutes();
+              const commentPrefix = `dns-auto:${name}`;
+              const { coveredIps, uncoveredIps } = filterIpsCoveredByOptimizedRoutes(
+                ips,
+                currentRoutes,
+                commentPrefix
+              );
+
+              if (coveredIps.length > 0) {
+                console.log(
+                  `Skipping ${coveredIps.length} IP(s) already covered by optimized routes for service "${name}": ${coveredIps.join(', ')}`
+                );
+              }
+
+              ips = uncoveredIps;
+            }
 
             if (ips.length > 0) {
               console.log(`Adding ${ips.length} IPs for ${matchedDomains.length} matched domains to VPN routing for service "${name}"`);
@@ -131,6 +151,8 @@ export function createServicesRouter(api: KeeneticApi, logFilePath?: string): ex
                 interfaces: newServiceData.interfaces,
                 comment: `dns-auto:${name}`,
               });
+            } else if (newServiceData.optimizeRoutes) {
+              console.log(`All IPs for service "${name}" are already covered by optimized routes`);
             }
           }
         } catch (dnsError) {

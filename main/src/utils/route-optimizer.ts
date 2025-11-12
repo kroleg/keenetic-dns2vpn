@@ -221,3 +221,61 @@ export function calculateOptimizationStats(routesToAdd: OptimizedRoute[], routes
     reductionPercent: Math.round(reductionPercent * 100) / 100
   };
 }
+
+/**
+ * Checks if an IP address is already covered by existing optimized routes
+ *
+ * @param ip - The IP address to check
+ * @param routes - Array of all routes to check against
+ * @param serviceCommentPrefix - Comment prefix to identify routes belonging to a service
+ * @returns True if the IP is covered by an optimized route, false otherwise
+ */
+export function isIpCoveredByOptimizedRoutes(
+  ip: string,
+  routes: Route[],
+  serviceCommentPrefix: string
+): boolean {
+  // Filter optimized network routes for this service
+  const optimizedRoutes = routes.filter(
+    r => r.network && r.mask && r.comment.startsWith(serviceCommentPrefix) && r.comment.includes(':optimized/')
+  );
+
+  // Check if IP fits into any of the optimized network routes
+  for (const route of optimizedRoutes) {
+    if (route.network && route.mask && ipInNetwork(ip, route.network, route.mask)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Filters out IPs that are already covered by existing optimized routes
+ *
+ * @param ips - Array of IPs to filter
+ * @param routes - Array of all routes to check against
+ * @param serviceCommentPrefix - Comment prefix to identify routes belonging to a service
+ * @returns Object with covered IPs and uncovered IPs that need to be added
+ */
+export function filterIpsCoveredByOptimizedRoutes(
+  ips: string[],
+  routes: Route[],
+  serviceCommentPrefix: string
+): {
+  coveredIps: string[];
+  uncoveredIps: string[];
+} {
+  const coveredIps: string[] = [];
+  const uncoveredIps: string[] = [];
+
+  for (const ip of ips) {
+    if (isIpCoveredByOptimizedRoutes(ip, routes, serviceCommentPrefix)) {
+      coveredIps.push(ip);
+    } else {
+      uncoveredIps.push(ip);
+    }
+  }
+
+  return { coveredIps, uncoveredIps };
+}

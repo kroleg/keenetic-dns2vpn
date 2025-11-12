@@ -1,11 +1,11 @@
 import { startFileWatcher } from "./file-watcher.js";
 import { KeeneticApi } from './keenetic-api.js';
 import { createLogger } from './logger.js';
-import { getAllServices, type Service } from "./storage/service.repository.js";
+import { getAllServices, getServiceByName, type Service } from "./storage/service.repository.js";
 import { runMigrations } from "./storage/db.js";
 import { startUI } from "./ui/server.js";
 import { matchWithoutStars, wildcardDomainMatch } from "./matcher.js";
-import { optimizeRoutes, calculateOptimizationStats } from "./utils/route-optimizer.js";
+import { optimizeRoutes, calculateOptimizationStats, filterIpsCoveredByOptimizedRoutes } from "./utils/route-optimizer.js";
 
 const logger = createLogger(process.env.LOG_LEVEL || 'info');
 
@@ -122,21 +122,49 @@ optimizeServiceRoutes();
 
 await startFileWatcher({
   logFilePath: process.env.WATCH_FILE || 'dns-proxy.log',
-  onLine: (line) => {
+  onLine: async (line) => {
     try {
         const logEntry = JSON.parse(line) as { hostname: string, ips: string[] };
         if (logEntry && typeof logEntry.hostname === 'string' && Array.isArray(logEntry.ips)) {
             logger.debug(`dns query for ${logEntry.hostname} resolved to IPs: ${logEntry.ips}`);
             const match = matchers.find(m => wildcardDomainMatch(logEntry.hostname, m.pattern) || matchWithoutStars(logEntry.hostname, m.pattern));
             if (match) {
+              // Check if service has optimized routes enabled
+              const service = await getServiceByName(match.name);
+              let ipsToAdd = logEntry.ips;
+
+              if (service?.optimizeRoutes) {
+                // Get current routes to check if IPs are already covered by optimized routes
+                const currentRoutes = await api.getRoutes();
+                const commentPrefix = `dns-auto:${match.name}`;
+                const { coveredIps, uncoveredIps } = filterIpsCoveredByOptimizedRoutes(
+                  logEntry.ips,
+                  currentRoutes,
+                  commentPrefix
+                );
+
+                if (coveredIps.length > 0) {
+                  logger.debug(
+                    `Skipping ${coveredIps.length} IP(s) already covered by optimized routes for ${logEntry.hostname}: ${coveredIps.join(', ')}`
+                  );
+                }
+
+                ipsToAdd = uncoveredIps;
+              }
+
+              if (ipsToAdd.length === 0) {
+                logger.debug(`All IPs for ${logEntry.hostname} are already covered by optimized routes`);
+                return;
+              }
+
               api.addStaticRoutesForService({
-                ips: logEntry.ips,
+                ips: ipsToAdd,
                 interfaces: match.interfaces,
                 comment: 'dns-auto:' + match.name + ':' + logEntry.hostname,
               }).then(resp => {
                 if (resp) {
                   // todo differentiate between add and update
-                  logger.info(`Adding route for ${logEntry.hostname} (${match.name}) via interfaces: ${match.interfaces.join(', ')} to IPs: ${logEntry.ips}`);
+                  logger.info(`Adding route for ${logEntry.hostname} (${match.name}) via interfaces: ${match.interfaces.join(', ')} to IPs: ${ipsToAdd}`);
                 } else {
                   logger.error('Error adding static route for ' + logEntry.hostname);
                 }
