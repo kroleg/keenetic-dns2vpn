@@ -162,7 +162,7 @@ export class DnsProxy {
   logIfSlow(start: number, threshold: number, label: string) {
     const tookMs = Date.now() - start
     if (tookMs > threshold) {
-      console.error(`${label} took ${tookMs}`)
+      this.logger.warn(`${label} took ${tookMs}`)
     }
   }
 
