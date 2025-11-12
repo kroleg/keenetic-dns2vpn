@@ -7,8 +7,8 @@ export const defaultConfig = {
   ],
   logResolvedToFile: process.env.LOG_RESOLVED_TO_FILE || '../shared-logs/dns-proxy.log',
   hostToIpFile: process.env.HOST_TO_IP_FILE || '../host2ip.txt',
-  slowDnsThresholdMs: envToInt(process.env.SLOW_DNS_THRESHOLD_MS, 500)
-  // timeout: 5000,
+  slowDnsThresholdMs: envToInt(process.env.SLOW_DNS_THRESHOLD_MS, 1000),
+  timeout: envToInt(process.env.DNS_TIMEOUT_MS, 5000)
 };
 
 function envToInt(something: string | undefined, defaultVal: number){

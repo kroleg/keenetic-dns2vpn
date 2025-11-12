@@ -110,20 +110,25 @@ export class DnsProxy {
 
     try {
       const response = await new Promise<Buffer>((resolve, reject) => {
-        client.on('error', reject);
+        let timeoutId: NodeJS.Timeout | null = null;
+
+        client.on('error', (error) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          reject(error);
+        });
+
         client.on('message', (response: Buffer) => {
+          if (timeoutId) clearTimeout(timeoutId);
           resolve(response);
           client.close();
         });
 
         client.send(msg, upstreamServer.port, upstreamServer.host);
 
-        // TODO: Implement timeout
-        // // Set timeout
-        // setTimeout(() => {
-        //   client.close();
-        //   reject(new Error('DNS request timeout'));
-        // }, this.config.timeout);
+        timeoutId = setTimeout(() => {
+          client.close();
+          reject(new Error(`DNS request timeout after ${this.config.timeout}ms`));
+        }, this.config.timeout);
       });
 
       const decodedResponse = dnsPacket.decode(response);
@@ -155,7 +160,22 @@ export class DnsProxy {
       return response;
 
     } catch (error) {
-      throw error;
+      if (error instanceof Error && error.message.includes('timeout')) {
+        this.logger.warn(`DNS request timeout for ${question.name} after ${this.config.timeout}ms`);
+      } else {
+        this.logger.error(`DNS request error for ${question.name}:`, error);
+      }
+
+      // Return DNS SERVFAIL response
+      const servfailResponse = dnsPacket.encode({
+        id: query.id,
+        type: 'response',
+        flags: 0x8182, // SERVFAIL: Server failure (0x8180 | 0x0002)
+        questions: [question],
+        answers: []
+      });
+
+      return servfailResponse;
     }
   }
 
