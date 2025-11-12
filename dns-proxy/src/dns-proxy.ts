@@ -68,6 +68,7 @@ export class DnsProxy {
   }
 
   private async handleDnsRequest(msg: Buffer, clientIp: string): Promise<Buffer> {
+    const startTime = Date.now()
     const query = dnsPacket.decode(msg);
     const question = query.questions[0];
 
@@ -145,13 +146,23 @@ export class DnsProxy {
 
       if (resolvedIps.length > 0) {
         this.logger.info(`client: ${clientIp} query: ${question.name} response: ${resolvedIps}`);
+        const logStartTime = Date.now()
         await this.logResolvedHost({ clientIp, hostname: question.name, ips: resolvedIps });
+        this.logIfSlow(logStartTime, 15, 'Slow logResolvedHost')
       }
 
+      this.logIfSlow(startTime, this.config.slowDnsThresholdMs, `SLOW RESP: ${ question.name }`)
       return response;
 
     } catch (error) {
       throw error;
+    }
+  }
+
+  logIfSlow(start: number, threshold: number, label: string) {
+    const tookMs = Date.now() - start
+    if (tookMs > threshold) {
+      console.error(`${label} took ${tookMs}`)
     }
   }
 
