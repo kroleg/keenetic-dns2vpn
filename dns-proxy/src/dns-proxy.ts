@@ -143,10 +143,8 @@ export class DnsProxy {
         .filter((a: DnsAnswer) => a.type === 'A' /*|| a.type === 'AAAA'*/) // ignore ipv6 for now
         .map((a: DnsAnswer) => a.data.toString());
 
-      this.logger.info(`client: ${clientIp} query: ${question.name} response: ${resolvedIps}`);
-
-      // Submit to service if enabled
       if (resolvedIps.length > 0) {
+        this.logger.info(`client: ${clientIp} query: ${question.name} response: ${resolvedIps}`);
         await this.logResolvedHost({ clientIp, hostname: question.name, ips: resolvedIps });
       }
 
