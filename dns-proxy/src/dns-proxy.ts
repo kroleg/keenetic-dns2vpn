@@ -5,16 +5,19 @@ import { createLogger } from './logger.js';
 import { defaultConfig } from './config.js';
 import fs from 'node:fs/promises';
 import type { Logger } from 'winston';
+import { DnsRequestLogger } from './db.js';
 
 export class DnsProxy {
   private server: dgram.Socket;
   private logger: Logger;
   private logResolvedToFile: string;
   private hostToIpMap: Map<string, string[]> = new Map();
+  private dbLogger: DnsRequestLogger;
 
   constructor(private config: typeof defaultConfig) {
     this.logger = createLogger(config.logLevel);
     this.server = dgram.createSocket('udp4');
+    this.dbLogger = new DnsRequestLogger(this.logger);
     this.setupServer();
     this.logResolvedToFile = config.logResolvedToFile;
     // Create the log file if it doesn't exist, so on first run there will be no need to manually create it
@@ -82,6 +85,9 @@ export class DnsProxy {
       class: question.class
     });
 
+    // Log pending request to database
+    const requestId = await this.dbLogger.logPendingRequest(clientIp, question.name, question.type);
+
     // Check host-to-IP map first
     const mappedIps = this.hostToIpMap.get(question.name);
     if (question.type === 'A' && mappedIps) {
@@ -99,8 +105,10 @@ export class DnsProxy {
           data: ip
         }))
       });
+      const responseTime = Date.now() - startTime;
       this.logger.info(`client: ${clientIp} query: ${question.name} response (local): ${mappedIps}`);
       await this.logResolvedHost({ clientIp, hostname: question.name, ips: mappedIps });
+      await this.dbLogger.updateResolved(requestId, mappedIps, responseTime);
       return response;
     }
 
@@ -156,15 +164,24 @@ export class DnsProxy {
         this.logIfSlow(logStartTime, 15, 'Slow logResolvedHost')
       }
 
+      const responseTime = Date.now() - startTime;
+      await this.dbLogger.updateResolved(requestId, resolvedIps, responseTime);
       this.logIfSlow(startTime, this.config.slowDnsThresholdMs, `SLOW RESP: ${ question.name }`)
       return response;
 
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+      let errorMessage = 'Unknown error';
+
       if (error instanceof Error && error.message.includes('timeout')) {
+        errorMessage = `Timeout after ${this.config.timeout}ms`;
         this.logger.warn(`DNS request timeout for ${question.name} after ${this.config.timeout}ms`);
       } else {
+        errorMessage = error instanceof Error ? error.message : String(error);
         this.logger.error(`DNS request error for ${question.name}:`, error);
       }
+
+      await this.dbLogger.updateFailed(requestId, errorMessage, responseTime);
 
       // Return DNS SERVFAIL response
       const servfailResponse = dnsPacket.encode({
@@ -186,7 +203,10 @@ export class DnsProxy {
     }
   }
 
-  public start(): Promise<void> {
+  public async start(): Promise<void> {
+    // Initialize database connection
+    await this.dbLogger.initialize();
+
     return new Promise((resolve) => {
       this.server.bind(this.config.listenPort, () => {
         this.logger.info(`DNS server listening on port ${this.config.listenPort}`);
@@ -195,10 +215,11 @@ export class DnsProxy {
     });
   }
 
-  public stop(): Promise<void> {
+  public async stop(): Promise<void> {
     return new Promise((resolve) => {
-      this.server.close(() => {
+      this.server.close(async () => {
         this.logger.info('DNS server stopped');
+        await this.dbLogger.close();
         resolve();
       });
     });

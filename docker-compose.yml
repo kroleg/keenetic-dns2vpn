@@ -1,7 +1,27 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=dns2vpn
+      - POSTGRES_USER=dns2vpn
+      - POSTGRES_PASSWORD=dns2vpn
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dns2vpn"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   dns-to-vpn:
     depends_on:
-      - dns-proxy
+      # postgres:
+      #   condition: service_healthy
+      dns-proxy:
+        condition: service_started
     build:
       context: ./main
       dockerfile: Dockerfile
@@ -16,14 +36,27 @@ services:
       - KEENETIC_HOST=${KEENETIC_HOST}
       - KEENETIC_LOGIN=${KEENETIC_LOGIN}
       - KEENETIC_PASSWORD=${KEENETIC_PASSWORD}
+      # - POSTGRES_HOST=postgres
+      # - POSTGRES_PORT=5432
+      # - POSTGRES_DB=dns2vpn
+      # - POSTGRES_USER=dns2vpn
+      # - POSTGRES_PASSWORD=dns2vpn
     restart: unless-stopped
 
   dns-proxy:
+    depends_on:
+      postgres:
+        condition: service_healthy
     build:
       context: ./dns-proxy
     environment:
       - LOG_RESOLVED_TO_FILE=/logs/dns-proxy.log
       - HOST_TO_IP_FILE=/config/host-to-ip.txt
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=dns2vpn
+      - POSTGRES_USER=dns2vpn
+      - POSTGRES_PASSWORD=dns2vpn
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -31,3 +64,6 @@ services:
       - ./shared-logs:/logs
       - ./config:/config
     restart: unless-stopped
+
+volumes:
+  postgres_data:
