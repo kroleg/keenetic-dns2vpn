@@ -126,6 +126,9 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
     // Prefill interfaces if provided
     if (ifacesParam && typeof ifacesParam === 'string') {
       service.interfaces = stringToArray(ifacesParam);
+    } else if (interfaces.length > 0) {
+      // Pre-select first available interface on creation
+      service.interfaces = [interfaces[0].name];
     }
 
     // Prefill name and matchingDomains if domain is provided
@@ -134,7 +137,7 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
       service.matchingDomains = [domain];
     }
 
-    res.render('services/create', { title: 'Create New Service', service, error: null, currentPath: req.path, interfaces });
+    res.render('services/create', { title: 'Create New Service', service, error: null, currentPath: req.path, interfaces, invalidInterface: null });
   });
 
   servicesRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
@@ -170,7 +173,7 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
     try {
       const newServiceData: serviceRepository.NewService = {
         name,
-        interfaces: stringToArray(interfaces),
+        interfaces: interfaces ? [interfaces] : [],
         matchingDomains: stringToArray(matchingDomains),
         optimizeRoutes: optimizeRoutes === 'on' || optimizeRoutes === 'true',
       };
@@ -238,11 +241,14 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
       console.error('Create service error:', error);
       // Check for unique constraint error (specific to SQLite, might need adjustment for other DBs)
       if (error instanceof Error && (error.message.includes('UNIQUE constraint failed: services.name') || (error as any).code === 'SQLITE_CONSTRAINT_UNIQUE')) {
+        const availableInterfaces = await api.getInterfaces();
         res.status(400).render('services/create', {
           title: 'Create New Service',
-          service: { name, interfaces, matchingDomains }, // Repopulate form with submitted values
+          service: { name, interfaces: interfaces ? [interfaces] : [], matchingDomains }, // Repopulate form with submitted values
           error: 'Service name already exists. Please choose a different name.',
-          currentPath: '/services/create'
+          currentPath: '/services/create',
+          interfaces: availableInterfaces,
+          invalidInterface: null
         });
       } else {
         next(error);
@@ -264,7 +270,26 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
         return;
       }
       const interfaces = await api.getInterfaces();
-      res.render('services/update', { title: 'Update Service', service, error: null, currentPath: req.path, interfaces });
+
+      // Check if current interface(s) are valid
+      let invalidInterface: string | null = null;
+      const currentInterface = service.interfaces && service.interfaces.length > 0 ? service.interfaces[0] : null;
+
+      if (currentInterface) {
+        const isValid = interfaces.some(iface => iface.name === currentInterface || iface.id === currentInterface);
+        if (!isValid) {
+          invalidInterface = currentInterface;
+          // Pre-select first available interface
+          if (interfaces.length > 0) {
+            service.interfaces = [interfaces[0].name];
+          }
+        }
+      } else if (interfaces.length > 0) {
+        // No interface selected, pre-select first available
+        service.interfaces = [interfaces[0].name];
+      }
+
+      res.render('services/update', { title: 'Update Service', service, error: null, currentPath: req.path, interfaces, invalidInterface });
     } catch (error) {
       next(error);
     }
@@ -282,17 +307,20 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
 
       const updateData: serviceRepository.UpdateService = {
         name,
-        interfaces: stringToArray(interfaces),
+        interfaces: interfaces ? [interfaces] : [],
         matchingDomains: stringToArray(matchingDomains),
         optimizeRoutes: optimizeRoutes === 'on' || optimizeRoutes === 'true',
       };
       const updatedService = await serviceRepository.updateService(id, updateData);
       if (!updatedService) {
+        const availableInterfaces = await api.getInterfaces();
         res.status(404).render('services/update', {
           title: 'Update Service',
-          service: { id, name, interfaces, matchingDomains }, // Original data + attempted updates
+          service: { id, name, interfaces: interfaces ? [interfaces] : [], matchingDomains }, // Original data + attempted updates
           error: 'Service not found or failed to update.',
-          currentPath: `/services/update/${id}`
+          currentPath: `/services/update/${id}`,
+          interfaces: availableInterfaces,
+          invalidInterface: null
         });
         return;
       }
@@ -300,11 +328,14 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
     } catch (error) {
       console.error(`Update service error for ID ${id}:`, error);
       if (error instanceof Error && (error.message.includes('UNIQUE constraint failed: services.name') || (error as any).code === 'SQLITE_CONSTRAINT_UNIQUE')) {
+        const availableInterfaces = await api.getInterfaces();
         res.status(400).render('services/update', {
           title: 'Update Service',
-          service: { id, name, interfaces, matchingDomains }, // Repopulate with submitted values
+          service: { id, name, interfaces: interfaces ? [interfaces] : [], matchingDomains }, // Repopulate with submitted values
           error: 'Service name already exists. Please choose a different name.',
-          currentPath: `/services/update/${id}`
+          currentPath: `/services/update/${id}`,
+          interfaces: availableInterfaces,
+          invalidInterface: null
         });
       } else {
         next(error);

@@ -6,17 +6,19 @@ if error
   input#name.form-control(type='text' name='name' value=service.name required)
 
 .mb-3
-  label.form-label(for='interfaces') Interfaces (comma-separated)
-  ul.list-group.mb-2
+  label.form-label(for='interfaces') Interface
+  select#interfaces.form-select(name='interfaces' required)
     each iface in interfaces
-      li.list-group-item.d-flex.align-items-center
+      - const isSelected = service.interfaces && service.interfaces.length > 0 ? (service.interfaces.includes(iface.name) || service.interfaces.includes(iface.id)) : false
+      option(value=iface.name selected=isSelected)
         if !iface.connected
-          span.badge.bg-danger.me-2 NOT CONNECTED
-        span.text-muted.me-2= iface.id
-        span.text-muted.me-1 =
-        span= iface.name
-  textarea#interfaces.form-control(name='interfaces' rows='3')= Array.isArray(service.interfaces) ? service.interfaces.join(', ') : service.interfaces
-  .form-text Example: eth0, br-lan
+          = `⚠️ ${iface.name} (NOT CONNECTED)`
+        else
+          = iface.name
+  if invalidInterface
+    .alert.alert-warning.mt-2(role='alert')
+      strong Warning:
+      | The previously selected interface "#{invalidInterface}" is no longer available. First available interface has been pre-selected.
 
 .mb-3
   label.form-label(for='matchingDomains') Matching Domains (comma-separated)
