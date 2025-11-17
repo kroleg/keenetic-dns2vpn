@@ -1,8 +1,80 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import * as serviceRepository from '../storage/service.repository.js';
 import type { KeeneticApi } from '../keenetic-api.js';
-import { getLastUniqueDnsRequests, matchDomainsAgainstPatterns, extractUniqueIps } from '../utils/dns-log-processor.js';
+import { matchDomainsAgainstPatterns } from '../utils/dns-log-processor.js';
 import { filterIpsCoveredByOptimizedRoutes } from '../utils/route-optimizer.js';
+
+const DNS_API_URL = process.env.DNS_API_URL || 'http://dns-proxy:3001';
+
+interface DnsLogEntry {
+  id: number;
+  client_ip: string;
+  hostname: string;
+  query_type: string;
+  status: string;
+  resolved_ips: string[] | null;
+  error_message: string | null;
+  response_time_ms: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface SimpleDnsEntry {
+  hostname: string;
+  ips: string[];
+}
+
+async function getLastUniqueDnsRequestsFromApi(limit: number = 100): Promise<SimpleDnsEntry[]> {
+  try {
+    const response = await fetch(`${DNS_API_URL}/dns-requests?limit=${limit}&status=resolved&orderBy=created_at&order=desc`);
+
+    if (!response.ok) {
+      throw new Error(`DNS API returned ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    const logs = result.data as DnsLogEntry[];
+
+    // Get unique hostnames (latest entry per hostname)
+    const domainMap = new Map<string, DnsLogEntry>();
+
+    for (const entry of logs) {
+      const existing = domainMap.get(entry.hostname);
+      if (!existing || new Date(entry.created_at) > new Date(existing.created_at)) {
+        domainMap.set(entry.hostname, entry);
+      }
+    }
+
+    // Convert to the format expected by existing code
+    return Array.from(domainMap.values()).map(entry => ({
+      hostname: entry.hostname,
+      ips: entry.resolved_ips || []
+    }));
+  } catch (error) {
+    console.error('Error fetching DNS logs from API:', error);
+    throw error;
+  }
+}
+
+/**
+ * Extract unique IPs from DNS entries
+ * @param entries - Array of DNS entries
+ * @returns Array of unique IP addresses
+ */
+function extractUniqueIpsFromEntries(entries: SimpleDnsEntry[]): string[] {
+  const ipSet = new Set<string>();
+
+  for (const entry of entries) {
+    for (const ip of entry.ips) {
+      // Skip blocked entries (0.0.0.0) and invalid IPs
+      if (ip !== '0.0.0.0' && ip) {
+        ipSet.add(ip);
+      }
+    }
+  }
+
+  return Array.from(ipSet);
+}
 
 const stringToArray = (input?: string): string[] => {
   if (!input) return [];
@@ -22,7 +94,7 @@ type ServiceWithRoutes = serviceRepository.Service & {
   }[];
 };
 
-export function createServicesRouter(api: KeeneticApi, logFilePath?: string): express.Router {
+export function createServicesRouter(api: KeeneticApi): express.Router {
   const servicesRouter = express.Router();
 
   // Middleware to parse URL-encoded data (for form submissions)
@@ -105,10 +177,10 @@ export function createServicesRouter(api: KeeneticApi, logFilePath?: string): ex
       const newService = await serviceRepository.createService(newServiceData);
 
       // Process last 100 DNS requests and add matching domains to VPN routing
-      if (logFilePath && newServiceData.matchingDomains.length > 0) {
+      if (newServiceData.matchingDomains.length > 0) {
         try {
-          // Get last 100 unique DNS requests
-          const dnsRequests = await getLastUniqueDnsRequests(logFilePath, 100);
+          // Get last 100 unique DNS requests from API
+          const dnsRequests = await getLastUniqueDnsRequestsFromApi(100);
 
           // Extract all hostnames
           const hostnames = dnsRequests.map(req => req.hostname);
@@ -121,7 +193,7 @@ export function createServicesRouter(api: KeeneticApi, logFilePath?: string): ex
             const matchedRequests = dnsRequests.filter(req => matchedDomains.includes(req.hostname));
 
             // Extract unique IPs from matched requests
-            let ips = extractUniqueIps(matchedRequests);
+            let ips = extractUniqueIpsFromEntries(matchedRequests);
 
             // If optimize routes is enabled, check if IPs are already covered by optimized routes
             if (newServiceData.optimizeRoutes) {

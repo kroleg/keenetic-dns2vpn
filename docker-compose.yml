@@ -18,8 +18,6 @@ services:
 
   dns-to-vpn:
     depends_on:
-      # postgres:
-      #   condition: service_healthy
       dns-proxy:
         condition: service_started
     build:
@@ -36,11 +34,7 @@ services:
       - KEENETIC_HOST=${KEENETIC_HOST}
       - KEENETIC_LOGIN=${KEENETIC_LOGIN}
       - KEENETIC_PASSWORD=${KEENETIC_PASSWORD}
-      # - POSTGRES_HOST=postgres
-      # - POSTGRES_PORT=5432
-      # - POSTGRES_DB=dns2vpn
-      # - POSTGRES_USER=dns2vpn
-      # - POSTGRES_PASSWORD=dns2vpn
+      - DNS_API_URL=http://dns-proxy:3001
     restart: unless-stopped
 
   dns-proxy:

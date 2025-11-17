@@ -1,0 +1,50 @@
+extends ../layout
+
+block content
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h2 Failed DNS Requests
+    a.btn.btn-secondary(href='/logs') ← Back to Logs
+
+  .card
+    .card-body
+      if failedRequests.length === 0
+        p.text-muted No failed requests found.
+      else
+        .table-responsive
+          table.table.table-striped.table-hover
+            thead
+              tr
+                th Timestamp
+                th Client IP
+                th Hostname
+                th Error Message
+                th Response Time
+            tbody
+              each request in failedRequests
+                tr
+                  td= new Date(request.created_at).toLocaleString()
+                  td
+                    a(href=`/logs/${request.client_ip}`)= request.client_ip
+                  td= request.hostname
+                  td.text-danger= request.error_message
+                  td= request.response_time_ms ? request.response_time_ms + 'ms' : '-'
+
+        if pagination && pagination.totalPages > 1
+          nav.mt-3(aria-label='Page navigation')
+            ul.pagination.justify-content-center
+              li.page-item(class=pagination.page === 1 ? 'disabled' : '')
+                a.page-link(href=`?page=${pagination.page - 1}`) Previous
+
+              - for (let i = 1; i <= pagination.totalPages; i++)
+                li.page-item(class=i === pagination.page ? 'active' : '')
+                  a.page-link(href=`?page=${i}`)= i
+
+              li.page-item(class=pagination.page === pagination.totalPages ? 'disabled' : '')
+                a.page-link(href=`?page=${pagination.page + 1}`) Next
+
+  .card.mt-4
+    .card-body
+      p.text-muted
+        | Showing #{failedRequests.length} of #{pagination.total} failed requests
+        if pagination.totalPages > 1
+          |  (Page #{pagination.page} of #{pagination.totalPages})
