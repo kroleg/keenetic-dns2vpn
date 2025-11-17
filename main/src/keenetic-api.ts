@@ -101,13 +101,18 @@ export class KeeneticApi {
       const payloadSuffix = { system: { configuration: { save: {} } } }
       const { interfaces, ips: hosts, comment, network, mask } = service
 
+      // Resolve interface names to IDs
+      const resolvedInterfaces = await Promise.all(
+        (interfaces || ['Wireguard0']).map(iface => this.resolveInterfaceId(iface))
+      );
+
       // If network and mask are provided, add network route instead of host routes
       const commands = network && mask
-        ? (interfaces || ['Wireguard0']).map(iface => ({
+        ? resolvedInterfaces.map(iface => ({
             ip: { route: { network, mask, interface: iface, auto: true, comment } }
           }))
         : hosts.flatMap(host => {
-            return (interfaces || ['Wireguard0']).map(iface => {
+            return resolvedInterfaces.map(iface => {
               return {
                   ip: { route: { host, interface: iface, auto: true, comment, }, },
               };
@@ -300,6 +305,32 @@ export class KeeneticApi {
     const { data } = await this.getWithAuth('/rci/show/interface');
     const facesWithTypes = Object.values(data as any).filter((i: any) => types.includes(i.type))
     return facesWithTypes.map(({ id, type, description: name, connected: connectedYesNo }: any) => ({ id, name, type, connected: connectedYesNo == 'yes'  }));
+  }
+
+  /**
+   * Resolves interface names to IDs. If the input is already an ID (e.g., "Wireguard0"),
+   * returns it as-is. If it's a name (e.g., "netherlands"), looks it up and returns the ID.
+   * @param interfaceNameOrId - Interface name or ID
+   * @returns Interface ID
+   */
+  async resolveInterfaceId(interfaceNameOrId: string): Promise<string> {
+    // Check if it looks like an ID (e.g., "Wireguard0", "Wireguard1", etc.)
+    const idPattern = /^[A-Za-z]+\d+$/;
+    if (idPattern.test(interfaceNameOrId)) {
+      // Assume it's already an ID
+      return interfaceNameOrId;
+    }
+
+    // It's a name, look it up
+    const interfaces = await this.getInterfaces();
+    const found = interfaces.find(i => i.name === interfaceNameOrId || i.id === interfaceNameOrId);
+
+    if (!found) {
+      this.logger.warn(`Interface "${interfaceNameOrId}" not found, using as-is`);
+      return interfaceNameOrId;
+    }
+
+    return found.id;
   }
 
   async getRoutes(): Promise<{
