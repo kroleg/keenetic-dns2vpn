@@ -19,6 +19,7 @@ block content
       table.table.table-striped.table-hover
         thead
           tr
+            th Status
             th Name
             th Interfaces
             th Domains
@@ -26,6 +27,11 @@ block content
         tbody
           each service in services
             tr
+              td
+                if service.enabled
+                  span.badge.bg-success on
+                else
+                  span.badge.bg-secondary off
               td
                 a(href=`/services/${service.id}`)= service.name
               td= service.interfaces.join(', ')

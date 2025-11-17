@@ -36,10 +36,12 @@ async function fetchMatchers() {
   const existingServices: Service[] = await getAllServices();
   logger.debug(`Fetched ${existingServices.length} services from the database.`);
   existingServices.forEach(service => {
-    logger.debug(`Service ID: ${service.id}, Name: ${service.name}, Interfaces: ${service.interfaces.join(', ')}, Domains: ${service.matchingDomains.join(', ')}`);
+    logger.debug(`Service ID: ${service.id}, Name: ${service.name}, Enabled: ${service.enabled}, Interfaces: ${service.interfaces.join(', ')}, Domains: ${service.matchingDomains.join(', ')}`);
   });
   const list: typeof matchers = []
-  existingServices.forEach(service => {
+  // Only include enabled services
+  const enabledServices = existingServices.filter(s => s.enabled);
+  enabledServices.forEach(service => {
     service.matchingDomains.forEach(pattern => {
       list.push({
         name: service.name,
@@ -59,10 +61,11 @@ fetchMatchers()
 async function optimizeServiceRoutes() {
   try {
     const services = await getAllServices();
-    const servicesToOptimize = services.filter(s => s.optimizeRoutes);
+    // Only optimize enabled services with route optimization enabled
+    const servicesToOptimize = services.filter(s => s.enabled && s.optimizeRoutes);
 
     if (servicesToOptimize.length === 0) {
-      logger.debug('No services with route optimization enabled');
+      logger.debug('No enabled services with route optimization enabled');
       return;
     }
 
@@ -129,8 +132,15 @@ await startFileWatcher({
             logger.debug(`dns query for ${logEntry.hostname} resolved to IPs: ${logEntry.ips}`);
             const match = matchers.find(m => wildcardDomainMatch(logEntry.hostname, m.pattern) || matchWithoutStars(logEntry.hostname, m.pattern));
             if (match) {
-              // Check if service has optimized routes enabled
+              // Check if service has optimized routes enabled and is enabled
               const service = await getServiceByName(match.name);
+
+              // Skip if service is disabled
+              if (!service || !service.enabled) {
+                logger.debug(`Skipping disabled service: ${match.name}`);
+                return;
+              }
+
               let ipsToAdd = logEntry.ips;
 
               if (service?.optimizeRoutes) {

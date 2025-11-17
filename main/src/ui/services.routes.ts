@@ -381,6 +381,36 @@ export function createServicesRouter(api: KeeneticApi): express.Router {
     res.redirect(`/services/${id}`);
   });
 
+  // Route to toggle service enabled/disabled status
+  servicesRouter.post('/toggle-enabled/:id', async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        res.status(400).send('Invalid service ID');
+        return;
+      }
+
+      const service = await serviceRepository.getServiceById(id);
+      if (!service) {
+        res.status(404).send('Service not found');
+        return;
+      }
+
+      // Toggle the enabled status
+      const newEnabledStatus = !service.enabled;
+      await serviceRepository.updateService(id, { enabled: newEnabledStatus });
+
+      // If disabling, remove all routes for this service
+      if (!newEnabledStatus) {
+        await api.removeRoutesByCommentPrefix('dns-auto:' + service.name);
+      }
+
+      res.redirect(`/services/${id}`);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Basic error handler (you should have a more sophisticated one in your main app.ts)
   servicesRouter.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     console.error("[Service UI Error]:", err);

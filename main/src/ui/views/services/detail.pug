@@ -8,6 +8,16 @@ block content
       dt.col-sm-3 Name
       dd.col-sm-9 #{service.name}
 
+      dt.col-sm-3 Enabled
+      dd.col-sm-9
+        form.d-inline(method="POST" action=`/services/toggle-enabled/${service.id}`)
+          if service.enabled
+            span.badge.bg-success on
+            button.ms-3.btn.btn-sm.btn-warning(type="submit") Disable
+          else
+            span.badge.bg-secondary off
+            button.ms-3.btn.btn-sm.btn-success(type="submit") Enable
+
       dt.col-sm-3 Interfaces
       dd.col-sm-9 #{service.interfaces.join(', ')}
 

@@ -15,6 +15,13 @@
       "when": 1746964262614,
       "tag": "0001_add_optimize_routes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1746964262615,
+      "tag": "0002_add_enabled",
+      "breakpoints": true
     }
   ]
 }
