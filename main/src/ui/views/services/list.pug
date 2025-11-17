@@ -10,27 +10,25 @@ block content
       each iface in notConnectedInterfaces
         strong.ms-1= iface.name
 
-  .card
-    .card-body
-      a.btn.btn-primary.mb-3(href='/services/create') Create New Service
+  a.btn.btn-primary.mb-3(href='/services/create') Create New Service
 
-      if services.length === 0
-        p.text-muted No services found.
-      else
-        .table-responsive
-          table.table.table-striped.table-hover
-            thead
-              tr
-                th Name
-                th Interfaces
-                th Domains
-                th Actions
-            tbody
-              each service in services
-                tr
-                  td
-                    a(href=`/services/${service.id}`)= service.name
-                  td= service.interfaces.join(', ')
-                  td= service.matchingDomains.join(', ')
-                  td
-                    a.btn.btn-sm.btn-secondary(href=`/services/update/${service.id}`) Edit
+  if services.length === 0
+    p.text-muted No services found.
+  else
+    .table-responsive
+      table.table.table-striped.table-hover
+        thead
+          tr
+            th Name
+            th Interfaces
+            th Domains
+            th Actions
+        tbody
+          each service in services
+            tr
+              td
+                a(href=`/services/${service.id}`)= service.name
+              td= service.interfaces.join(', ')
+              td= service.matchingDomains.join(', ')
+              td
+                a.btn.btn-sm.btn-secondary(href=`/services/update/${service.id}`) Edit

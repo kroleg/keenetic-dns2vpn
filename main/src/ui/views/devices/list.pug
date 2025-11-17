@@ -1,27 +1,25 @@
 extends ../layout
 
 block content
-  .card
-    .card-body
-      if clients.length === 0
-        p.text-muted No devices currently connected.
-      else
-        .table-responsive
-          table.table.table-striped.table-hover
-            thead
-              tr
-                th Name
-                th IP
-                th Connection policy
-                th Logs
-            tbody
-              each client in clients
-                - const policyId = client.policy
-                - const policyInfo = policyId && policies[policyId]
-                - const policyName = policyInfo ? (policyInfo.description || policyInfo.name || policyId) : (policyId || '—')
-                tr
-                  td= client.name
-                  td= client.ip
-                  td= policyName
-                  td
-                    a.btn.btn-sm.btn-primary(href=`/devices/${client.ip}`) View
+  if clients.length === 0
+    p.text-muted No devices currently connected.
+  else
+    .table-responsive
+      table.table.table-striped.table-hover
+        thead
+          tr
+            th Name
+            th IP
+            th Connection policy
+            th Logs
+        tbody
+          each client in clients
+            - const policyId = client.policy
+            - const policyInfo = policyId && policies[policyId]
+            - const policyName = policyInfo ? (policyInfo.description || policyInfo.name || policyId) : (policyId || '—')
+            tr
+              td= client.name
+              td= client.ip
+              td= policyName
+              td
+                a.btn.btn-sm.btn-primary(href=`/devices/${client.ip}`) View

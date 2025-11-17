@@ -1,15 +1,13 @@
 extends ../layout.pug
 
 block content
-  .card
-    .card-body
-      nav(aria-label="breadcrumb")
-        ol.breadcrumb
-          li.breadcrumb-item
-            a(href="/services") Services
-          li.breadcrumb-item
-            a(href=`/services/${service.id}`) #{service.name}
-          li.breadcrumb-item.active(aria-current="page") Edit
+  nav(aria-label="breadcrumb")
+    ol.breadcrumb
+      li.breadcrumb-item
+        a(href="/services") Services
+      li.breadcrumb-item
+        a(href=`/services/${service.id}`) #{service.name}
+      li.breadcrumb-item.active(aria-current="page") Edit
 
-      form(method='POST' action=`/services/update/${service.id}`)
-        include _form.pug
+  form(method='POST' action=`/services/update/${service.id}`)
+    include _form.pug

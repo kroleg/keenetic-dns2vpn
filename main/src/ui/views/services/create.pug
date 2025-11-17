@@ -1,7 +1,5 @@
 extends ../layout.pug
 
 block content
-  .card
-    .card-body
-      form(method='POST' action='/services/create')
-        include _form.pug
+  form(method='POST' action='/services/create')
+    include _form.pug
