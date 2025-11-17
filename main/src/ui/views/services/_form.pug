@@ -21,10 +21,10 @@ if error
       | The previously selected interface "#{invalidInterface}" is no longer available. First available interface has been pre-selected.
 
 .mb-3
-  label.form-label(for='matchingDomains') Matching Domains (comma-separated)
+  label.form-label(for='matchingDomains') Matching Domains (one per line)
   .form-text.mb-2 *.domain.com will match domain.com and all subdomains.
-  textarea#matchingDomains.form-control(name='matchingDomains' rows='3')= Array.isArray(service.matchingDomains) ? service.matchingDomains.join(', ') : service.matchingDomains
-  .form-text Example: "google.com, *.example.com"
+  textarea#matchingDomains.form-control(name='matchingDomains' rows='3')= Array.isArray(service.matchingDomains) ? service.matchingDomains.join('\n') : service.matchingDomains
+  .form-text Example: "google.com *.example.com"
 
 .mb-3.form-check
   input#optimizeRoutes.form-check-input(type='checkbox' name='optimizeRoutes' checked=service.optimizeRoutes)

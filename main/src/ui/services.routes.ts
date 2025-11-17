@@ -78,7 +78,8 @@ function extractUniqueIpsFromEntries(entries: SimpleDnsEntry[]): string[] {
 
 const stringToArray = (input?: string): string[] => {
   if (!input) return [];
-  return input.split(',').map(item => item.trim()).filter(Boolean);
+  // Split by comma, space, or newline, then trim and filter empty strings
+  return input.split(/[\n,\s]+/).map(item => item.trim()).filter(Boolean);
 }
 
 type ServiceWithRoutes = serviceRepository.Service & {
