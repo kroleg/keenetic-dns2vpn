@@ -1,15 +1,17 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { pgTable, serial, text, boolean, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
-export const servicesTable = sqliteTable('services', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const servicesTable = pgTable('services', {
+  id: serial('id').primaryKey(),
   name: text('name').notNull().unique(),
-  interfaces: text('interfaces', { mode: 'json' }).$type<string[]>().notNull(),
-  matchingDomains: text('matching_domains', { mode: 'json' }).$type<string[]>().notNull(),
-  optimizeRoutes: integer('optimize_routes', { mode: 'boolean' }).notNull().default(true),
-  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
-  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`)
-  // commented out as it doesn't work
-  // .$onUpdate(() => sql`(strftime('%s', 'now'))`).notNull(),
+  interfaces: jsonb('interfaces').$type<string[]>().notNull(),
+  matchingDomains: jsonb('matching_domains').$type<string[]>().notNull(),
+  optimizeRoutes: boolean('optimize_routes').notNull().default(true),
+  enabled: boolean('enabled').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow()
+}, (table) => {
+  return {
+    nameIdx: index('services_name_idx').on(table.name),
+  };
 });

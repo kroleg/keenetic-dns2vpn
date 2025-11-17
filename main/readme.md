@@ -22,7 +22,7 @@
 - Node.js (v22) and pnpm (latest). Use .tool-versions file.
 - ESM Support
 - TypeScript with tsx: For type safety and maintainability
-- sqlite for data storage
+- postgres for data storage
 
 ---
 

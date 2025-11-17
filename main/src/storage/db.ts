@@ -1,13 +1,20 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import pg from 'pg';
 import * as schema from './db-schema.js';
 
-const dbPath = process.env.DB_PATH || 'sqlite.db';
+const { Pool } = pg;
 
-const sqlite = new Database(dbPath);
+// PostgreSQL configuration from environment variables
+const pool = new Pool({
+  host: process.env.POSTGRES_HOST || 'localhost',
+  port: parseInt(process.env.POSTGRES_PORT || '5432'),
+  database: process.env.POSTGRES_DB || 'dns2vpn',
+  user: process.env.POSTGRES_USER || 'dns2vpn',
+  password: process.env.POSTGRES_PASSWORD || 'dns2vpn',
+});
 
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(pool, { schema });
 
 // Function to run migrations
 export async function runMigrations() {
@@ -17,6 +24,8 @@ export async function runMigrations() {
   console.log('Migrations run successfully');
 }
 
-// Optionally, run migrations on startup (consider if this is appropriate for your application flow)
-// For a library, it might be better to export the function and let the consumer decide when to run it.
-// runMigrations().catch(console.error);
+// Graceful shutdown
+export async function closeDatabase() {
+  await pool.end();
+  console.log('Database connection closed');
+}
