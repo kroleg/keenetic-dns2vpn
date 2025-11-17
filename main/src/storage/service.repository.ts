@@ -1,6 +1,6 @@
 import { db } from './db.js';
 import { servicesTable } from './db-schema.js';
-import { eq, type InferSelectModel, type InferInsertModel } from 'drizzle-orm';
+import { eq, asc, type InferSelectModel, type InferInsertModel } from 'drizzle-orm';
 
 // Type for a selected service (matches the database record)
 export type Service = InferSelectModel<typeof servicesTable>;
@@ -30,7 +30,7 @@ export async function getServiceById(id: number): Promise<Service | null> {
 }
 
 export async function getAllServices(): Promise<Service[]> {
-  const services = await db.select().from(servicesTable);
+  const services = await db.select().from(servicesTable).orderBy(asc(servicesTable.name));
   return services;
 }
 
