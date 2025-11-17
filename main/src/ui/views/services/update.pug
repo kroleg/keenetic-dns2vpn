@@ -10,7 +10,6 @@ block content
           li.breadcrumb-item
             a(href=`/services/${service.id}`) #{service.name}
           li.breadcrumb-item.active(aria-current="page") Edit
-      h2.card-title Update Service: #{service.name}
 
       form(method='POST' action=`/services/update/${service.id}`)
         include _form.pug
