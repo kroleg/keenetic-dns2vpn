@@ -9,5 +9,6 @@ export function wildcardDomainMatch(domain: string, pattern: string) {
 
 export function matchWithoutStars(domain: string, pattern: string) {
   const patternWithoutStars = pattern.replace(/\*/g, '').replace(/^\./, '');
-  return domain == patternWithoutStars;
+  // Match exact domain or any subdomain
+  return domain === patternWithoutStars || domain.endsWith('.' + patternWithoutStars);
 }

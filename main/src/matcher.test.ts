@@ -28,11 +28,25 @@ describe('wildcardDomainMatch', () => {
 });
 
 describe(matchWithoutStars, () => {
-  it('should remove stars and leading dot and return true if exact match', () => {
+  it('should match exact domain', () => {
+    expect(matchWithoutStars('example.com', 'example.com')).toBe(true);
+  });
+
+  it('should match subdomains', () => {
+    expect(matchWithoutStars('sub.example.com', 'example.com')).toBe(true);
+    expect(matchWithoutStars('deep.sub.example.com', 'example.com')).toBe(true);
+  });
+
+  it('should remove stars and match exact domain', () => {
     expect(matchWithoutStars('example.com', '*.example.com')).toBe(true);
   });
 
-  it('should remove stars and leading dot and return false if not exact match', () => {
-    expect(matchWithoutStars('sexample.com', '*.example.com')).toBe(false);
+  it('should remove stars and match subdomains', () => {
+    expect(matchWithoutStars('sub.example.com', '*.example.com')).toBe(true);
+  });
+
+  it('should not match different domains', () => {
+    expect(matchWithoutStars('sexample.com', 'example.com')).toBe(false);
+    expect(matchWithoutStars('example.org', 'example.com')).toBe(false);
   });
 });
