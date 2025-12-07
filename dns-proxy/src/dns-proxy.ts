@@ -14,6 +14,7 @@ export class DnsProxy {
   private logger: Logger;
   private logResolvedToFile: string;
   private hostToIpMap: Map<string, string[]> = new Map();
+  private blockedDomains: Set<string> = new Set();
   private dbLogger: DnsRequestLogger;
   private dotClient: DnsOverTlsClient;
 
@@ -26,8 +27,8 @@ export class DnsProxy {
     this.logResolvedToFile = config.logResolvedToFile;
     // Create the log file if it doesn't exist, so on first run there will be no need to manually create it
     fs.writeFile(this.logResolvedToFile, '');
-    // Load host-to-IP mapping
     this.loadHostToIpMap();
+    this.loadBlocklist();
   }
 
   private async loadHostToIpMap() {
@@ -46,6 +47,58 @@ export class DnsProxy {
     } catch (err) {
       this.logger.warn(`Could not load host-to-IP map: ${err}`);
     }
+  }
+
+  private async loadBlocklist() {
+    if (!this.config.blocklistFile) return;
+
+    try {
+      const file = await fs.readFile(this.config.blocklistFile, 'utf-8');
+      this.blockedDomains.clear();
+      let count = 0;
+
+      for (const line of file.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('!')) continue;
+
+        let domain: string | null = null;
+
+        // AdGuard format: ||domain.com^
+        if (trimmed.startsWith('||') && !trimmed.includes('*') && !trimmed.includes('/')) {
+          domain = trimmed.slice(2).replace(/\^.*$/, '').toLowerCase();
+        }
+        // Hosts file format: 0.0.0.0 domain.com or 127.0.0.1 domain.com
+        else if (trimmed.startsWith('0.0.0.0 ') || trimmed.startsWith('127.0.0.1 ')) {
+          const parts = trimmed.split(/\s+/);
+          if (parts[1]) domain = parts[1].toLowerCase();
+        }
+
+        if (domain && domain.length > 0 && !domain.includes('/')) {
+          this.blockedDomains.add(domain);
+          count++;
+        }
+      }
+
+      this.logger.info(`Loaded ${count} blocked domains from ${this.config.blocklistFile}`);
+    } catch (err) {
+      this.logger.warn(`Could not load blocklist: ${err}`);
+    }
+  }
+
+  private isBlocked(hostname: string): boolean {
+    const lowerHostname = hostname.toLowerCase();
+
+    // Check exact match first
+    if (this.blockedDomains.has(lowerHostname)) return true;
+
+    // Check parent domains (subdomain matching)
+    const parts = lowerHostname.split('.');
+    for (let i = 1; i < parts.length - 1; i++) {
+      const parentDomain = parts.slice(i).join('.');
+      if (this.blockedDomains.has(parentDomain)) return true;
+    }
+
+    return false;
   }
 
   private async logResolvedHost(params: { clientIp: string, hostname: string, ips: string[] }) {
@@ -114,6 +167,26 @@ export class DnsProxy {
       await this.logResolvedHost({ clientIp, hostname: question.name, ips: mappedIps });
       await this.dbLogger.updateResolved(requestId, mappedIps, responseTime);
       return response;
+    }
+
+    // Check blocklist
+    if ((question.type === 'A' || question.type === 'AAAA') && this.isBlocked(question.name)) {
+      const responseTime = Date.now() - startTime;
+      this.logger.info(`client: ${clientIp} query: ${question.name} BLOCKED`);
+      await this.dbLogger.updateResolved(requestId, ['0.0.0.0'], responseTime);
+      return dnsPacket.encode({
+        id: query.id,
+        type: 'response',
+        flags: 0x8180,
+        questions: [question],
+        answers: question.type === 'A' ? [{
+          type: 'A',
+          name: question.name,
+          ttl: 300,
+          class: 'IN',
+          data: '0.0.0.0'
+        }] : []
+      });
     }
 
     // Get upstream server (TODO: Implement round-robin)
@@ -226,8 +299,7 @@ export class DnsProxy {
   }
 
   public async start(): Promise<void> {
-    // Initialize database connection
-    await this.dbLogger.initialize();
+    if (this.dbLogger) await this.dbLogger.initialize();
 
     return new Promise((resolve) => {
       this.server.bind(this.config.listenPort, () => {
@@ -241,7 +313,7 @@ export class DnsProxy {
     return new Promise((resolve) => {
       this.server.close(async () => {
         this.logger.info('DNS server stopped');
-        await this.dbLogger.close();
+        if (this.dbLogger) await this.dbLogger.close();
         resolve();
       });
     });

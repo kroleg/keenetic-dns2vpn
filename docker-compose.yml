@@ -64,6 +64,7 @@ services:
     environment:
       - LOG_RESOLVED_TO_FILE=/logs/dns-proxy.log
       - HOST_TO_IP_FILE=/config/host-to-ip.txt
+      - BLOCKLIST_FILE=/config/blocklist.txt
       - POSTGRES_HOST=postgres-proxy
       - POSTGRES_PORT=5432
       - POSTGRES_DB=dns2vpn
