@@ -59,10 +59,31 @@ A TypeScript-based DNS proxy that forwards DNS requests to specified DNS servers
    ```
 
 ### Configuration
+
+The DNS proxy can be configured using environment variables:
+
+- `UPSTREAM_DNS_SERVERS` - Comma-separated list of upstream DNS servers with protocol specification
+  - Format: `protocol://host:port`
+  - Supported protocols: `udp`, `dot` (DNS over TLS)
+  - Examples:
+    - `udp://192.168.1.1:53` - Plain DNS over UDP
+    - `dot://1.1.1.1:853` - DNS over TLS (Cloudflare)
+    - `dot://8.8.8.8:853#dns.google` - DNS over TLS with custom servername for SNI
+  - Default: `udp://192.168.1.1:53`
+
+- `DNS_TIMEOUT_MS` - DNS query timeout in milliseconds (default: 5000)
+- `LOG_LEVEL` - Logging level: debug, info, warn, error (default: info)
+- `LOG_RESOLVED_TO_FILE` - Path to file for resolved domain logs
+- `HOST_TO_IP_FILE` - Path to custom host-to-IP mapping file
+- `SLOW_DNS_THRESHOLD_MS` - Threshold for slow DNS warnings (default: 1000ms)
+
+Example configuration for DNS over TLS:
+```bash
+UPSTREAM_DNS_SERVERS="dot://1.1.1.1:853#cloudflare-dns.com,dot://8.8.8.8:853#dns.google"
+```
+
 - Configurable listening port (default: 53)
-- Configurable upstream DNS servers
 - Optional configuration for:
-  - Timeout settings
   - Response caching
 
 ### Testing Requirements

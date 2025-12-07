@@ -3,9 +3,11 @@ import type { RemoteInfo } from 'node:dgram';
 import dnsPacket, { type DnsAnswer } from 'dns-packet';
 import { createLogger } from './logger.js';
 import { defaultConfig } from './config.js';
+import type { UpstreamServer } from './config.js';
 import fs from 'node:fs/promises';
 import type { Logger } from 'winston';
 import { DnsRequestLogger } from './db.js';
+import { DnsOverTlsClient } from './dns-over-tls.js';
 
 export class DnsProxy {
   private server: dgram.Socket;
@@ -13,11 +15,13 @@ export class DnsProxy {
   private logResolvedToFile: string;
   private hostToIpMap: Map<string, string[]> = new Map();
   private dbLogger: DnsRequestLogger;
+  private dotClient: DnsOverTlsClient;
 
   constructor(private config: typeof defaultConfig) {
     this.logger = createLogger(config.logLevel);
     this.server = dgram.createSocket('udp4');
     this.dbLogger = new DnsRequestLogger(this.logger);
+    this.dotClient = new DnsOverTlsClient(this.logger);
     this.setupServer();
     this.logResolvedToFile = config.logResolvedToFile;
     // Create the log file if it doesn't exist, so on first run there will be no need to manually create it
@@ -112,32 +116,12 @@ export class DnsProxy {
       return response;
     }
 
-    // Create a UDP client for the upstream server
-    const client = dgram.createSocket('udp4');
-    const upstreamServer = this.config.upstreamServers[0]; // TODO: Implement round-robin
+    // Get upstream server (TODO: Implement round-robin)
+    const upstreamServer = this.config.upstreamServers[0];
 
     try {
-      const response = await new Promise<Buffer>((resolve, reject) => {
-        let timeoutId: NodeJS.Timeout | null = null;
-
-        client.on('error', (error) => {
-          if (timeoutId) clearTimeout(timeoutId);
-          reject(error);
-        });
-
-        client.on('message', (response: Buffer) => {
-          if (timeoutId) clearTimeout(timeoutId);
-          resolve(response);
-          client.close();
-        });
-
-        client.send(msg, upstreamServer.port, upstreamServer.host);
-
-        timeoutId = setTimeout(() => {
-          client.close();
-          reject(new Error(`DNS request timeout after ${this.config.timeout}ms`));
-        }, this.config.timeout);
-      });
+      // Query upstream server based on protocol
+      const response = await this.queryUpstream(msg, upstreamServer);
 
       const decodedResponse = dnsPacket.decode(response);
 
@@ -201,6 +185,44 @@ export class DnsProxy {
     if (tookMs > threshold) {
       this.logger.warn(`${label} took ${tookMs}`)
     }
+  }
+
+  private async queryUpstream(query: Buffer, server: UpstreamServer): Promise<Buffer> {
+    if (server.protocol === 'dot') {
+      // Use DNS over TLS
+      this.logger.debug(`Querying upstream via DoT: ${server.host}:${server.port}`);
+      return await this.dotClient.query(query, server, this.config.timeout);
+    } else {
+      // Use plain DNS over UDP
+      this.logger.debug(`Querying upstream via UDP: ${server.host}:${server.port}`);
+      return await this.queryUpstreamUdp(query, server);
+    }
+  }
+
+  private async queryUpstreamUdp(msg: Buffer, upstreamServer: UpstreamServer): Promise<Buffer> {
+    const client = dgram.createSocket('udp4');
+
+    return new Promise<Buffer>((resolve, reject) => {
+      let timeoutId: NodeJS.Timeout | null = null;
+
+      client.on('error', (error) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        reject(error);
+      });
+
+      client.on('message', (response: Buffer) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        resolve(response);
+        client.close();
+      });
+
+      client.send(msg, upstreamServer.port, upstreamServer.host);
+
+      timeoutId = setTimeout(() => {
+        client.close();
+        reject(new Error(`DNS request timeout after ${this.config.timeout}ms`));
+      }, this.config.timeout);
+    });
   }
 
   public async start(): Promise<void> {

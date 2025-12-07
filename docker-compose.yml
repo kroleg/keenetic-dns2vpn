@@ -71,6 +71,13 @@ services:
       - POSTGRES_PASSWORD=dns2vpn
       - ENABLE_API=true
       - API_PORT=3001
+      # Upstream DNS servers: Use DNS over TLS for privacy
+      # Format: protocol://host:port#servername
+      # Examples:
+      #   - dot://1.1.1.1:853#cloudflare-dns.com (Cloudflare DNS over TLS)
+      #   - udp://192.168.1.1:53 (Plain DNS over UDP)
+      # - UPSTREAM_DNS_SERVERS=dot://77.88.8.8:853#common.dot.dns.yandex.net
+      - UPSTREAM_DNS_SERVERS=dot://1.1.1.1:853#cloudflare-dns.com
     ports:
       - "53:53/tcp"
       - "53:53/udp"
