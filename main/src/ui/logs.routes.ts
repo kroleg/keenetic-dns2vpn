@@ -48,13 +48,12 @@ export function createLogsRouter({ api }: { api: KeeneticApi }): express.Router 
   });
 
 
-  // Route to display failed requests
-  router.get('/failed/all', async (req: Request, res: Response, next: NextFunction) => {
+  router.get('/failed/7d', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = 50;
 
-      const response = await fetch(`${DNS_API_URL}/dns-requests?status=failed&page=${page}&limit=${limit}&orderBy=created_at&order=desc`);
+      const response = await fetch(`${DNS_API_URL}/dns-requests?status=failed&page=${page}&limit=${limit}&orderBy=created_at&order=desc&since=7d`);
 
       if (!response.ok) {
         throw new Error(`DNS API returned ${response.status}: ${response.statusText}`);

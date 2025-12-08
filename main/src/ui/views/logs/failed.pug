@@ -2,7 +2,7 @@ extends ../layout
 
 block content
   .d-flex.justify-content-between.align-items-center.mb-4
-    h2 Failed DNS Requests
+    h2 Failed DNS Requests (Last 7 Days)
     a.btn.btn-secondary(href='/logs') ← Back to Logs
 
   if failedRequests.length === 0
@@ -41,6 +41,6 @@ block content
             a.page-link(href=`?page=${pagination.page + 1}`) Next
 
   p.text-muted.mt-4
-    | Showing #{failedRequests.length} of #{pagination.total} failed requests
+    | Showing #{failedRequests.length} of #{pagination.total} failed requests from last 7 days
     if pagination.totalPages > 1
       |  (Page #{pagination.page} of #{pagination.totalPages})

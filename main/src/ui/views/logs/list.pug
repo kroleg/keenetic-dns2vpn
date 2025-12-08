@@ -2,6 +2,56 @@ extends ../layout
 
 block content
   if stats
+    h5.mb-3 Last 24 Hours
+    .row.mb-4
+      .col-md-3
+        .card.text-center
+          .card-body
+            h5.card-title Total Requests
+            p.card-text.h3= stats.last24h.total_requests || 0
+      .col-md-3
+        .card.text-center.border-success
+          .card-body
+            h5.card-title.text-success Resolved
+            p.card-text.h3= stats.last24h.resolved_count || 0
+      .col-md-3
+        .card.text-center.border-danger
+          .card-body
+            h5.card-title.text-danger Failed
+            p.card-text.h3= stats.last24h.failed_count || 0
+      .col-md-3
+        .card.text-center.border-warning
+          .card-body
+            h5.card-title.text-warning Avg Response
+            p.card-text.h3= stats.last24h.avg_response_time ? Math.round(stats.last24h.avg_response_time) + 'ms' : '-'
+
+    h5.mb-3 Last 7 Days
+    .row.mb-4
+      .col-md-3
+        .card.text-center
+          .card-body
+            h5.card-title Total Requests
+            p.card-text.h3= stats.last7d.total_requests || 0
+      .col-md-3
+        .card.text-center.border-success
+          .card-body
+            h5.card-title.text-success Resolved
+            p.card-text.h3= stats.last7d.resolved_count || 0
+      .col-md-3
+        a.text-decoration-none(href='/logs/failed/7d')
+          .card.text-center.border-danger
+            .card-body
+              h5.card-title.text-danger Failed
+              p.card-text.h3= stats.last7d.failed_count || 0
+              if stats.last7d.failed_count > 0
+                small.text-muted Click to view details
+      .col-md-3
+        .card.text-center.border-warning
+          .card-body
+            h5.card-title.text-warning Avg Response
+            p.card-text.h3= stats.last7d.avg_response_time ? Math.round(stats.last7d.avg_response_time) + 'ms' : '-'
+
+    h5.mb-3 All Time
     .row.mb-4
       .col-md-3
         .card.text-center
@@ -14,13 +64,10 @@ block content
             h5.card-title.text-success Resolved
             p.card-text.h3= stats.overall.resolved_count || 0
       .col-md-3
-        a.text-decoration-none(href='/logs/failed/all')
-          .card.text-center.border-danger
-            .card-body
-              h5.card-title.text-danger Failed
-              p.card-text.h3= stats.overall.failed_count || 0
-              if stats.overall.failed_count > 0
-                small.text-muted Click to view details
+        .card.text-center.border-danger
+          .card-body
+            h5.card-title.text-danger Failed
+            p.card-text.h3= stats.overall.failed_count || 0
       .col-md-3
         .card.text-center.border-warning
           .card-body

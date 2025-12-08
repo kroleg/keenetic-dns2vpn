@@ -4,6 +4,35 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
+// Parse time delta strings like "7d", "1w", "24h", "30m"
+function parseDelta(delta: string): Date | null {
+  const match = delta.match(/^(\d+)([mhdw])$/);
+  if (!match) return null;
+
+  const value = parseInt(match[1]);
+  const unit = match[2];
+  const now = new Date();
+
+  switch (unit) {
+    case 'm': // minutes
+      now.setMinutes(now.getMinutes() - value);
+      break;
+    case 'h': // hours
+      now.setHours(now.getHours() - value);
+      break;
+    case 'd': // days
+      now.setDate(now.getDate() - value);
+      break;
+    case 'w': // weeks
+      now.setDate(now.getDate() - value * 7);
+      break;
+    default:
+      return null;
+  }
+
+  return now;
+}
+
 export class DnsLogsApi {
   private app: express.Application;
   private pool: pg.Pool;
@@ -57,14 +86,26 @@ export class DnsLogsApi {
         const status = req.query.status as string;
         const orderBy = (req.query.orderBy as string) || 'created_at';
         const order = (req.query.order as string) === 'asc' ? 'ASC' : 'DESC';
+        const since = req.query.since as string;
 
-        let whereClause = '';
+        const conditions: string[] = [];
         const params: any[] = [];
 
         if (status && ['pending', 'resolved', 'failed'].includes(status)) {
-          whereClause = 'WHERE status = $1';
           params.push(status);
+          conditions.push(`status = $${params.length}`);
         }
+
+        if (since) {
+          const sinceDate = parseDelta(since);
+          if (!sinceDate) {
+            return res.status(400).json({ error: `Invalid "since" format: "${since}". Use format like "7d", "1w", "24h", "30m"` });
+          }
+          params.push(sinceDate.toISOString());
+          conditions.push(`created_at >= $${params.length}`);
+        }
+
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
         const validColumns = ['created_at', 'updated_at', 'response_time_ms', 'hostname', 'client_ip'];
         const orderColumn = validColumns.includes(orderBy) ? orderBy : 'created_at';
@@ -178,8 +219,12 @@ export class DnsLogsApi {
     // Get DNS request statistics
     this.app.get('/dns-requests/stats', async (req: Request, res: Response) => {
       try {
-        // Overall statistics
-        const overallStats = await this.pool.query(`
+        const now = new Date();
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        // Statistics for different time periods
+        const periodStats = await this.pool.query(`
           SELECT
             COUNT(*) as total_requests,
             COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved_count,
@@ -187,9 +232,40 @@ export class DnsLogsApi {
             COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
             AVG(response_time_ms) as avg_response_time,
             MAX(response_time_ms) as max_response_time,
-            MIN(response_time_ms) as min_response_time
+            MIN(response_time_ms) as min_response_time,
+            COUNT(CASE WHEN created_at >= $1 THEN 1 END) as total_requests_24h,
+            COUNT(CASE WHEN created_at >= $1 AND status = 'resolved' THEN 1 END) as resolved_count_24h,
+            COUNT(CASE WHEN created_at >= $1 AND status = 'failed' THEN 1 END) as failed_count_24h,
+            AVG(CASE WHEN created_at >= $1 THEN response_time_ms END) as avg_response_time_24h,
+            COUNT(CASE WHEN created_at >= $2 THEN 1 END) as total_requests_7d,
+            COUNT(CASE WHEN created_at >= $2 AND status = 'resolved' THEN 1 END) as resolved_count_7d,
+            COUNT(CASE WHEN created_at >= $2 AND status = 'failed' THEN 1 END) as failed_count_7d,
+            AVG(CASE WHEN created_at >= $2 THEN response_time_ms END) as avg_response_time_7d
           FROM dns_requests
-        `);
+        `, [oneDayAgo.toISOString(), sevenDaysAgo.toISOString()]);
+
+        const stats = periodStats.rows[0];
+        const overall = {
+          total_requests: stats.total_requests,
+          resolved_count: stats.resolved_count,
+          failed_count: stats.failed_count,
+          pending_count: stats.pending_count,
+          avg_response_time: stats.avg_response_time,
+          max_response_time: stats.max_response_time,
+          min_response_time: stats.min_response_time,
+        };
+        const last24h = {
+          total_requests: stats.total_requests_24h,
+          resolved_count: stats.resolved_count_24h,
+          failed_count: stats.failed_count_24h,
+          avg_response_time: stats.avg_response_time_24h,
+        };
+        const last7d = {
+          total_requests: stats.total_requests_7d,
+          resolved_count: stats.resolved_count_7d,
+          failed_count: stats.failed_count_7d,
+          avg_response_time: stats.avg_response_time_7d,
+        };
 
         // Top hostnames
         const topHostnames = await this.pool.query(`
@@ -235,7 +311,9 @@ export class DnsLogsApi {
         `);
 
         res.json({
-          overall: overallStats.rows[0],
+          overall,
+          last24h,
+          last7d,
           topHostnames: topHostnames.rows,
           topClients: topClients.rows,
           statusBreakdown: statusBreakdown.rows,
