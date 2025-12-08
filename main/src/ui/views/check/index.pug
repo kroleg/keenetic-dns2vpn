@@ -1,0 +1,63 @@
+extends ../layout.pug
+
+block content
+  form(method="POST" action="/check")
+    .mb-3
+      label.form-label(for="domain") Domain name
+      .input-group
+        input.form-control#domain(type="text" name="domain" placeholder="example.com" value=domain required autofocus)
+        button.btn.btn-primary(type="submit") Check
+
+  if error
+    .alert.alert-danger.mt-3(role="alert")= error
+
+  if result
+    .mt-4
+      if result.allMatched
+        .alert.alert-success(role="alert")
+          strong All #{result.totalIps} IP(s) are routed through VPN
+      else if result.someMatched
+        .alert.alert-warning(role="alert")
+          strong #{result.matchedCount} of #{result.totalIps} IP(s) are routed through VPN
+      else
+        .alert.alert-secondary(role="alert")
+          strong No IPs are routed through VPN
+
+      h5.mt-4 Resolved IPs for #{domain}:
+      .table-responsive
+        table.table.table-striped
+          thead
+            tr
+              th IP Address
+              th Status
+              th Route Type
+              th Interface
+              th Comment
+          tbody
+            each item in result.ips
+              tr(class=item.matched ? 'table-success' : '')
+                td
+                  code= item.ip
+                td
+                  if item.matched
+                    span.badge.bg-success VPN
+                  else
+                    span.badge.bg-secondary No route
+                td
+                  if item.matchedRoute
+                    if item.matchedRoute.type === 'host'
+                      | Host route
+                    else
+                      | Network #{item.matchedRoute.network}/#{item.matchedRoute.mask}
+                  else
+                    | -
+                td
+                  if item.matchedRoute
+                    = item.matchedRoute.interface
+                  else
+                    | -
+                td
+                  if item.matchedRoute
+                    small= item.matchedRoute.comment
+                  else
+                    | -
