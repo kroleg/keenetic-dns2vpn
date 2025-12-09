@@ -39,7 +39,7 @@ services:
       context: ./main
       dockerfile: Dockerfile
     ports:
-      - "3000:3000" # Assuming js-api runs on port 3000
+      - "3000:3000"
     volumes:
       - ./shared-logs:/logs
     environment:
@@ -53,6 +53,15 @@ services:
       - KEENETIC_LOGIN=${KEENETIC_LOGIN}
       - KEENETIC_PASSWORD=${KEENETIC_PASSWORD}
       - DNS_API_URL=http://dns-proxy:3001
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`admin.internal`)"
+      - "traefik.http.routers.admin.entrypoints=web"
+      - "traefik.http.services.admin.loadbalancer.server.port=3000"
+      - "traefik.docker.network=server_default"
     restart: unless-stopped
 
   dns-proxy:
