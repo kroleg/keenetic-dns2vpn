@@ -1,0 +1,11 @@
+extends layout
+
+block content
+  .row.justify-content-center
+    .col-md-8.col-lg-6
+      .alert.alert-danger.text-center
+        h4.alert-heading Error
+        p= message
+        hr
+        p.mb-0
+          a.btn.btn-outline-danger(href="/") Try Again

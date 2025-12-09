@@ -5,6 +5,7 @@ import { createServicesRouter } from './services.routes.js';
 import { createLogsRouter } from './logs.routes.js';
 import { createDevicesRouter } from './devices.routes.js';
 import { createCheckRouter } from './check.routes.js';
+import { createApiRouter } from './api.routes.js';
 import type { Logger } from 'winston';
 import type { KeeneticApi } from '../keenetic-api.js';
 
@@ -26,6 +27,7 @@ export function startUI(logger: Logger, api: KeeneticApi) {
   app.use('/logs', createLogsRouter({ api }));
   app.use('/devices', createDevicesRouter(api));
   app.use('/check', createCheckRouter(api));
+  app.use('/api', createApiRouter(api));
 
   app.get('/', (req: Request, res: Response) => {
     res.redirect('/services');

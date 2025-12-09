@@ -88,6 +88,19 @@ services:
       - ./config:/config
     restart: unless-stopped
 
+  vpn-toggle:
+    depends_on:
+      - dns-to-vpn
+    build:
+      context: ./vpn-toggle
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - MAIN_API_URL=http://dns-to-vpn:3000/api
+    restart: unless-stopped
+
 volumes:
   postgres_main_data:
   postgres_proxy_data:

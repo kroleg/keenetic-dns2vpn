@@ -428,6 +428,101 @@ export class KeeneticApi {
     }
   }
 
+  async getConnectionPolicies(): Promise<{ id: string; name: string; description?: string }[]> {
+    await this.ensureAuthenticated();
+    try {
+      const response = await this.getWithAuth('/rci/show/rc/ip/policy');
+      if (response.status === 200 && response.data) {
+        const policiesData = response.data as Record<string, any>;
+        return Object.entries(policiesData).map(([id, policy]) => ({
+          id,
+          name: policy.name || id,
+          description: policy.description,
+        }));
+      }
+      this.logger.error(`Failed to get connection policies. Status: ${response.status}, Data: ${JSON.stringify(response.data)}`);
+      return [];
+    } catch (error) {
+      this.logger.error('Error fetching connection policies:', error);
+      return [];
+    }
+  }
+
+  async getClientByIp(ip: string): Promise<{
+    name: string;
+    ip: string;
+    mac: string;
+    policy?: string;
+    registered?: boolean;
+  } | null> {
+    await this.ensureAuthenticated();
+    try {
+      // Get current connected hosts
+      const response = await this.getWithAuth('/rci/show/ip/hotspot/host');
+      if (response.status === 200 && Array.isArray(response.data)) {
+        const client = response.data.find((c: any) => c.ip === ip);
+        if (client) {
+          // Get registered hosts configuration to find policy
+          const registeredResponse = await this.getWithAuth('/rci/show/rc/ip/hotspot/host');
+          let policy: string | undefined;
+
+          if (registeredResponse.status === 200 && registeredResponse.data) {
+            const registeredData = registeredResponse.data as Record<string, any>;
+            // Find by MAC address in registered hosts
+            const registeredHost = Object.values(registeredData).find(
+              (h: any) => h.mac?.toLowerCase() === client.mac?.toLowerCase()
+            );
+            if (registeredHost) {
+              policy = registeredHost.policy || registeredHost["ip-policy"];
+            }
+          }
+
+          return {
+            name: client.name || 'Unknown',
+            ip: client.ip || '',
+            mac: client.mac || '',
+            policy: policy || undefined,
+            registered: client.registered === true || client.registered === 'yes',
+          };
+        }
+      }
+      this.logger.error(`Client not found for IP: ${ip}`);
+      return null;
+    } catch (error) {
+      this.logger.error('Error fetching client by IP:', error);
+      return null;
+    }
+  }
+
+  async setClientPolicy(mac: string, policyId: string | null): Promise<boolean> {
+    await this.ensureAuthenticated();
+    try {
+      const payload = policyId
+        ? [
+            { ip: { hotspot: { host: { mac, permit: true, policy: policyId } } } },
+            { system: { configuration: { save: {} } } }
+          ]
+        : [
+            { ip: { hotspot: { host: { mac, permit: true, policy: { no: true } } } } },
+            { system: { configuration: { save: {} } } }
+          ];
+
+      this.logger.debug(`Setting policy for MAC ${mac}: ${JSON.stringify(payload)}`);
+      const response = await this.postWithAuth('/rci/', payload);
+      this.logger.debug(`Set policy response: ${JSON.stringify(response.data)}`);
+
+      if (response.status === 200) {
+        this.logger.info(`Policy ${policyId || 'removed'} set for MAC: ${mac}`);
+        return true;
+      }
+      this.logger.error(`Failed to set policy. Status: ${response.status}, Data: ${JSON.stringify(response.data)}`);
+      return false;
+    } catch (error) {
+      this.logger.error('Error setting client policy:', error);
+      return false;
+    }
+  }
+
   async removeRoutesByCommentPrefix(commentPrefix: string): Promise<boolean> {
     await this.ensureAuthenticated();
     try {
