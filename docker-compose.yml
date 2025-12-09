@@ -55,13 +55,13 @@ services:
       - DNS_API_URL=http://dns-proxy:3001
     networks:
       - default
-      - traefik
+      - shared
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.admin.rule=Host(`admin.internal`)"
       - "traefik.http.routers.admin.entrypoints=web"
       - "traefik.http.services.admin.loadbalancer.server.port=3000"
-      - "traefik.docker.network=server_default"
+      - "traefik.docker.network=shared"
     restart: unless-stopped
 
   dns-proxy:
@@ -108,19 +108,18 @@ services:
       - MAIN_API_URL=http://dns-to-vpn:3000/api
     networks:
       - default
-      - traefik
+      - shared
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.vpn-toggle.rule=Host(`vpn-toggle.internal`)"
       - "traefik.http.routers.vpn-toggle.entrypoints=web"
       - "traefik.http.services.vpn-toggle.loadbalancer.server.port=3002"
-      - "traefik.docker.network=server_default"
+      - "traefik.docker.network=shared"
     restart: unless-stopped
 
 networks:
-  traefik:
+  shared:
     external: true
-    name: server_default
 
 volumes:
   postgres_main_data:
