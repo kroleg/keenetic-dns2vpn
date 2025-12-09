@@ -9,14 +9,16 @@ block content
         thead
           tr
             th Name
-            th IP
+            th.d-none.d-md-table-cell IP
             th VPN
         tbody
           each client in clients
             - const vpnOn = !!client.policy
             tr
-              td= client.name
-              td= client.ip
+              td
+                div= client.name
+                small.d-md-none.text-muted= client.ip
+              td.d-none.d-md-table-cell= client.ip
               td
                 .d-flex.gap-1
                   form(method="POST" action="/devices/toggle-vpn" style="display:inline")
