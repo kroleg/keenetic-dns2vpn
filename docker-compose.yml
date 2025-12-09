@@ -94,12 +94,24 @@ services:
     build:
       context: ./vpn-toggle
       dockerfile: Dockerfile
-    ports:
-      - "3002:3002"
     environment:
       - PORT=3002
       - MAIN_API_URL=http://dns-to-vpn:3000/api
+    networks:
+      - default
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vpn-toggle.rule=Host(`vpn-toggle.internal`)"
+      - "traefik.http.routers.vpn-toggle.entrypoints=web"
+      - "traefik.http.services.vpn-toggle.loadbalancer.server.port=3002"
+      - "traefik.docker.network=server_default"
     restart: unless-stopped
+
+networks:
+  traefik:
+    external: true
+    name: server_default
 
 volumes:
   postgres_main_data:
