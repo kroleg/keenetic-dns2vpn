@@ -390,6 +390,7 @@ export class KeeneticApi {
   async getClients(): Promise<{
     name: string;
     ip: string;
+    mac: string;
     policy?: string;
   }[]> {
     await this.ensureAuthenticated();
@@ -401,6 +402,7 @@ export class KeeneticApi {
           .map((client: any) => ({
             name: client.name || 'Unknown',
             ip: client.ip || '',
+            mac: client.mac || '',
             policy: (client.policy || client.classifier || client["ip-policy"] || client.connection_policy || '').toString() || undefined,
           }));
       }
@@ -415,9 +417,8 @@ export class KeeneticApi {
   async getClientsPolicies(): Promise<Record<string, any>> {
     await this.ensureAuthenticated();
     try {
-      const response = await this.getWithAuth('/rci/rc/show/ip/hotspot/host');
+      const response = await this.getWithAuth('/rci/show/rc/ip/hotspot/host');
       if (response.status === 200) {
-        console.dir(response, {depth:null})
         return (response.data as Record<string, any>) || {};
       }
       this.logger.error(`Failed to get client policies. Status: ${response.status}, Data: ${JSON.stringify(response.data)}`);

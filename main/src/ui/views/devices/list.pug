@@ -10,16 +10,21 @@ block content
           tr
             th Name
             th IP
-            th Connection policy
-            th Logs
+            th VPN
         tbody
           each client in clients
-            - const policyId = client.policy
-            - const policyInfo = policyId && policies[policyId]
-            - const policyName = policyInfo ? (policyInfo.description || policyInfo.name || policyId) : (policyId || '—')
+            - const vpnOn = !!client.policy
             tr
               td= client.name
               td= client.ip
-              td= policyName
               td
-                a.btn.btn-sm.btn-primary(href=`/devices/${client.ip}`) View
+                .d-flex.gap-1
+                  form(method="POST" action="/devices/toggle-vpn" style="display:inline")
+                    input(type="hidden" name="mac" value=client.mac)
+                    input(type="hidden" name="policyId" value="")
+                    button.btn.btn-sm(type="submit" class=(!vpnOn ? 'btn-secondary' : 'btn-outline-secondary')) Off
+                  each policy in connectionPolicies
+                    form(method="POST" action="/devices/toggle-vpn" style="display:inline")
+                      input(type="hidden" name="mac" value=client.mac)
+                      input(type="hidden" name="policyId" value=policy.id)
+                      button.btn.btn-sm(type="submit" class=(client.policy === policy.id ? 'btn-primary' : 'btn-outline-primary'))= policy.description || policy.name
