@@ -1,4 +1,38 @@
 services:
+  traefik:
+    image: traefik:v3.0.0
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - default
+      - shared
+
+  glance:
+    image: glanceapp/glance:v0.8.4
+    restart: unless-stopped
+    volumes:
+      - ./glance/config:/app/config
+      - ./glance/assets:/app/assets
+    ports:
+      - "8888:8080"
+    networks:
+      - shared
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.glance.rule=Host(`home.internal`)"
+      - "traefik.http.routers.glance.entrypoints=web"
+      - "traefik.http.services.glance.loadbalancer.server.port=8080"
+      - "traefik.docker.network=shared"
+
   postgres-main:
     image: postgres:16-alpine
     environment:
@@ -119,7 +153,7 @@ services:
 
 networks:
   shared:
-    external: true
+    name: shared
 
 volumes:
   postgres_main_data:

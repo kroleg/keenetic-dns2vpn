@@ -1,0 +1,29 @@
+server:
+  assets-path: /app/assets
+
+theme:
+  # Note: assets are cached by the browser, changes to the CSS file
+  # will not be reflected until the browser cache is cleared (Ctrl+F5)
+  custom-css-file: /assets/user.css
+
+pages:
+  # It's not necessary to create a new file for each page and include it, you can simply
+  # put its contents here, though multiple pages are easier to manage when separated
+  - name: Home
+    hide-desktop-navigation: true
+    columns:
+      - size: full
+        widgets:
+          - type: monitor
+            title: Services
+            cache: 1m
+            style: compact
+            sites:
+              - title: DNS manager
+                url: http://192.168.1.100:3000
+                check_url: http://127.0.0.1:3000
+                icon: si:nextdns
+              - title: 3d printer
+                url: http://192.168.1.133
+                icon: si:elegoo
+  # - $include: home.yml
