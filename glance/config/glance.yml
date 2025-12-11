@@ -28,4 +28,6 @@ pages:
                 icon: si:elegoo
           - type: docker-containers
             title: Docker Containers
+          - type: server-stats
+            title: Server Stats
   # - $include: home.yml
