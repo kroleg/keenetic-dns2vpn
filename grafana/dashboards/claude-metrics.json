@@ -119,7 +119,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_commit_count_total)",
+          "expr": "sum(increase(claude_code_commit_count_total[$__range]))",
           "legendFormat": "Commits",
           "refId": "A"
         }
@@ -179,7 +179,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_active_time_seconds_total{type=\"cli\"})",
+          "expr": "sum(increase(claude_code_active_time_seconds_total{type=\"cli\"}[$__range]))",
           "legendFormat": "CLI Time",
           "refId": "A"
         }
@@ -239,7 +239,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_active_time_seconds_total{type=\"user\"})",
+          "expr": "sum(increase(claude_code_active_time_seconds_total{type=\"user\"}[$__range]))",
           "legendFormat": "User Time",
           "refId": "A"
         }
@@ -308,14 +308,14 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_cost_usage_USD_total)",
+          "expr": "sum(increase(claude_code_cost_usage_USD_total[$__range]))",
           "legendFormat": "Cost",
           "refId": "A"
         }
       ],
-      "title": "Total Cost",
+      "title": "Cost (period)",
       "type": "stat",
-      "description": "Total API cost in USD"
+      "description": "API cost for selected time range"
     },
     {
       "datasource": {
@@ -428,7 +428,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_token_usage_tokens_total{type=\"input\"})",
+          "expr": "sum(increase(claude_code_token_usage_tokens_total{type=\"input\"}[$__range]))",
           "legendFormat": "Input",
           "refId": "A"
         }
@@ -488,7 +488,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_token_usage_tokens_total{type=\"output\"})",
+          "expr": "sum(increase(claude_code_token_usage_tokens_total{type=\"output\"}[$__range]))",
           "legendFormat": "Output",
           "refId": "A"
         }
@@ -548,7 +548,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_token_usage_tokens_total{type=\"cacheRead\"})",
+          "expr": "sum(increase(claude_code_token_usage_tokens_total{type=\"cacheRead\"}[$__range]))",
           "legendFormat": "Cache Read",
           "refId": "A"
         }
@@ -608,7 +608,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_token_usage_tokens_total{type=\"cacheCreation\"})",
+          "expr": "sum(increase(claude_code_token_usage_tokens_total{type=\"cacheCreation\"}[$__range]))",
           "legendFormat": "Cache Creation",
           "refId": "A"
         }
@@ -806,7 +806,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum by (type) (claude_code_token_usage_tokens_total)",
+          "expr": "sum by (type) (increase(claude_code_token_usage_tokens_total[$__range]))",
           "legendFormat": "{{type}}",
           "refId": "A"
         }
@@ -866,7 +866,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum by (model) (claude_code_token_usage_tokens_total)",
+          "expr": "sum by (model) (increase(claude_code_token_usage_tokens_total[$__range]))",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -937,7 +937,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum by (model) (claude_code_cost_usage_USD_total)",
+          "expr": "sum by (model) (increase(claude_code_cost_usage_USD_total[$__range]))",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -1265,7 +1265,7 @@
       "id": 42,
       "options": {
         "legend": {
-          "calcs": ["mean", "sum"],
+          "calcs": ["mean", "max"],
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
