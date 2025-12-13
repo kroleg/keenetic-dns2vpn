@@ -11,7 +11,7 @@ exporters:
     endpoint: 0.0.0.0:8889
     namespace: ""
     send_timestamps: true
-    metric_expiration: 5m
+    metric_expiration: 180m
 
 service:
   pipelines:
