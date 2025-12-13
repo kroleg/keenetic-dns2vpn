@@ -161,6 +161,56 @@ services:
       - "traefik.docker.network=shared"
     restart: unless-stopped
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:v2.54.0
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    restart: unless-stopped
+
+  node-exporter:
+    container_name: node-exporter
+    image: prom/node-exporter:v1.8.2
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:11.3.0
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - default
+      - shared
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.internal`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=shared"
+    restart: unless-stopped
+
 networks:
   shared:
     name: shared
@@ -168,3 +218,5 @@ networks:
 volumes:
   postgres_main_data:
   postgres_proxy_data:
+  prometheus_data:
+  grafana_data:
