@@ -677,7 +677,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_token_usage_tokens_total{type=\"cacheRead\"}) / (sum(claude_code_token_usage_tokens_total{type=\"cacheRead\"}) + sum(claude_code_token_usage_tokens_total{type=\"input\"})) * 100",
+          "expr": "sum(increase(claude_code_token_usage_tokens_total{type=\"cacheRead\"}[$__range])) / (sum(increase(claude_code_token_usage_tokens_total{type=\"cacheRead\"}[$__range])) + sum(increase(claude_code_token_usage_tokens_total{type=\"input\"}[$__range]))) * 100",
           "legendFormat": "Efficiency",
           "refId": "A"
         }
@@ -746,7 +746,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_cost_usage_USD_total) / sum(claude_code_token_usage_tokens_total{type=\"output\"}) * 1000",
+          "expr": "sum(increase(claude_code_cost_usage_USD_total[$__range])) / sum(increase(claude_code_token_usage_tokens_total{type=\"output\"}[$__range])) * 1000",
           "legendFormat": "Cost/1K",
           "refId": "A"
         }
@@ -1011,7 +1011,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "expr": "sum(claude_code_active_time_seconds_total{type=\"cli\"}) / sum(claude_code_active_time_seconds_total{type=\"user\"})",
+          "expr": "sum(increase(claude_code_active_time_seconds_total{type=\"cli\"}[$__range])) / sum(increase(claude_code_active_time_seconds_total{type=\"user\"}[$__range]))",
           "legendFormat": "Ratio",
           "refId": "A"
         }
